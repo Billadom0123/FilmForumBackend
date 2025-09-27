@@ -10,13 +10,7 @@ import java.util.Map;
 public class FilmForumApplication {
 
     public static void main(String[] args) {
-        SpringApplication app = new SpringApplication(FilmForumApplication.class);
-
-        Map<String, Object> props = new HashMap<>();
-        props.put("spring.config.name", "application");
-
-        app.setDefaultProperties(props);
-        app.run(args);
+        SpringApplication.run(FilmForumApplication.class, args);
     }
 
 }
