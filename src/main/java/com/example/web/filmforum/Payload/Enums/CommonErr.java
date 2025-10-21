@@ -35,6 +35,12 @@ public enum CommonErr {
 
     USER_ALREADY_EXISTS(10030,"该用户已经存在！"),
 
+    USERNAME_ALREADY_EXISTS(10031,"该用户名已经被注册！"),
+
+    EMAIL_ALREADY_EXISTS(10032,"该邮箱已经被注册！"),
+
+    UNKNOWN_REGISTER_ERROR(10033,"未知的注册错误！"),
+
 
 
 

@@ -3,6 +3,7 @@ package com.example.web.filmforum.Service.Login;
 import com.alibaba.fastjson2.JSONObject;
 import com.example.web.filmforum.Model.User.UserPO;
 import com.example.web.filmforum.Payload.DataResponse;
+import com.example.web.filmforum.Payload.Enums.CommonErr;
 import com.example.web.filmforum.Payload.Enums.UserType;
 import com.example.web.filmforum.Repository.UserRepository;
 import com.example.web.filmforum.Util.H;
@@ -29,7 +30,10 @@ public class UserService {
         String password = payload.getString("password");
 
         if (userRepository.existsByUsername(username)) {
-            return DataResponse.failure(500, "Username is already taken");
+            return DataResponse.failure(CommonErr.USERNAME_ALREADY_EXISTS);
+        }
+        if (userRepository.existsByEmail(email)) {
+            return DataResponse.failure(CommonErr.EMAIL_ALREADY_EXISTS);
         }
 
         String encodedPassword = passwordEncoder.encode(password);
@@ -42,7 +46,12 @@ public class UserService {
         newUser.setLevel(1);
         newUser.setExp(0);
         newUser.setJoinDate(LocalDateTime.now());
-        userRepository.save(newUser);
+        try {
+            userRepository.save(newUser);
+        } catch (Exception e) {
+            return DataResponse.failure(CommonErr.UNKNOWN_REGISTER_ERROR);
+        }
+
 
         return DataResponse.success(H.build()
                 .put("username", username)
