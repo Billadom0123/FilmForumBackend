@@ -42,4 +42,6 @@ public class UserPO {
 
     @Enumerated(EnumType.STRING)
     private UserType role;
+
+    private String openId;
 }

@@ -68,4 +68,30 @@ public class UserService {
                 .toJson()
         );
     }
+
+    public UserPO findOrCreateByOpenId(String openId, JSONObject userInfoJson) {
+        UserPO user = userRepository.findByOpenId(openId);
+        if (user != null) {
+            return user;
+        }
+
+        // 如果用户不存在，创建新用户
+        String nickname = userInfoJson.getString("nickname");
+        String avatarUrl = userInfoJson.getString("figureurl_2");
+
+        UserPO newUser = new UserPO();
+        newUser.setUsername("qq_" + openId); // 生成一个唯一的用户名
+        newUser.setNickname(nickname);
+        newUser.setPassword(passwordEncoder.encode(openId)); // 使用openId作为密码并加密，之后可提示用户修改密码
+        newUser.setOpenId(openId);
+        newUser.setAvatar(avatarUrl);
+        newUser.setEmail(nickname + "@example.com"); // 使用昵称生成一个伪邮箱
+        newUser.setRole(UserType.ROLE_USER); // 默认角色为USER
+        newUser.setLevel(1);
+        newUser.setExp(0);
+        newUser.setJoinDate(LocalDateTime.now());
+
+        userRepository.save(newUser);
+        return newUser;
+    }
 }
