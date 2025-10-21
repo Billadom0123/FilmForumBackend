@@ -41,7 +41,7 @@ public class SecurityConfiguration {
         http.csrf(AbstractHttpConfigurer::disable);
         http.cors(cors -> cors.configurationSource(request -> {
             CorsConfiguration corsConfiguration = new CorsConfiguration();
-            corsConfiguration.setAllowedOrigins(List.of("*"));
+            corsConfiguration.setAllowedOriginPatterns(List.of("*"));
             corsConfiguration.setAllowedHeaders(List.of("*"));
             corsConfiguration.setAllowedMethods(List.of("*"));
             corsConfiguration.setAllowCredentials(true);
@@ -50,6 +50,7 @@ public class SecurityConfiguration {
         http.authorizeHttpRequests(authorizeRequests -> authorizeRequests
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // 静态资源放行
                 .requestMatchers("/api/user/**").permitAll()  // user部分接口允许通行
+                .requestMatchers("/api/oauth2/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll()  // test类接口允许通行（允许任何人测试）
                 .requestMatchers("/swagger-ui/**").permitAll()  // 接口文档通行
                 .requestMatchers("/v3/api-docs/**").permitAll()  // 同上

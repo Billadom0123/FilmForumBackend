@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 @Getter
 @Setter
@@ -20,14 +19,14 @@ public class UserPO {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     @Column(unique = true)
     private String username;
 
-    @NotBlank
     private String password;
 
-    @NotBlank
     @Email
+    @Column(unique = true)
     private String email;
 
     private String avatar;

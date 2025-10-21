@@ -1,6 +1,6 @@
 package com.example.web.filmforum.Model.User;
 
-import com.example.web.filmforum.Payload.Enums.UserType;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,6 +17,7 @@ import java.util.List;
 
 @Getter
 @Setter
+@AllArgsConstructor
 public class UserDetailsImpl implements UserDetails {
 
     @Serial
@@ -25,13 +26,6 @@ public class UserDetailsImpl implements UserDetails {
     private String username;
     private String password;
     private Collection<? extends GrantedAuthority> authorities;
-
-    public UserDetailsImpl(Long id, String username, String password, Collection<? extends GrantedAuthority> authorities) {
-        this.id = id;
-        this.username = username;
-        this.password = password;
-        this.authorities = authorities;
-    }
 
     public UserDetailsImpl(UserPO user) {
         this.id = user.getId();
