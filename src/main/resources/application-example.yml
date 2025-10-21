@@ -10,7 +10,7 @@ spring:
     # mysql服务地址 格式：jdbc:mysql://{mysql服务所在IP地址}:{mysql服务所在端口}/{数据库名称}?{一些参数}
     url: jdbc:mysql://127.0.0.1:3306/123456?useSSL=false&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf-8
     # 使用的用户名
-    username: 123456
+    username: ${DB_USER}
     # 用户名对应的密码
     password: 123456
 

@@ -4,6 +4,6 @@ spring:
 
   # profile设置用于调整不同配置文件的激活，可以参考application-example.yml来自己调整
   profiles:
-    active: personal
+    active: production
 server:
   port: 8082
