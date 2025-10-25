@@ -2,6 +2,9 @@ package com.example.web.filmforum.Util;
 
 import com.alibaba.fastjson2.JSONObject;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class H {
 
     private JSONObject jsonObject;
@@ -20,6 +23,15 @@ public class H {
 
     public JSONObject toJson() {
         return jsonObject;
+    }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        for (String key : jsonObject.keySet()) {
+            Object value = jsonObject.get(key);
+            map.put(key, value);
+        }
+        return map;
     }
 
 

@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.example.web.filmforum.Payload.DataResponse;
 import com.example.web.filmforum.Service.Login.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,5 +20,11 @@ public class UserController {
     @PostMapping("/register")
     public DataResponse registerUser(@RequestBody JSONObject payload) {
         return userService.registerUser(payload);
+    }
+
+    @PostMapping("/registerAdmin")
+    @Secured("ROLE_ADMIN")
+    public DataResponse registerAdmin(@RequestBody JSONObject payload) {
+        return userService.registerAdmin(payload);
     }
 }

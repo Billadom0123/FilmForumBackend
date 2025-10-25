@@ -58,6 +58,12 @@ public enum CommonErr {
 
     SQL_NOT_ALLOWED_IN_STRING(30002,"包含不允许的字符!"),
 
+    UNKNOWN_DATABASE_OPERATE_ERROR(30003,"未知的数据库操作错误!"),
+
+    INVALID_AWARD_TARGET_TYPE(31000,"获奖目标类型错误!"),
+
+    AWARD_NOT_FOUND(31001,"未找到对应的奖项!"),
+
     //------------------------------------------------数据异常------------------------------------------------//
 
     RESOURCE_NOT_FOUND(40000, "你要找的东西好像走丢啦X﹏X"),
