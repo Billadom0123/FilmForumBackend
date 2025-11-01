@@ -17,7 +17,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.web.cors.CorsConfiguration;
@@ -28,7 +30,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfiguration {
 
     @Autowired
@@ -90,6 +92,11 @@ public class SecurityConfiguration {
                 .userDetailsService(userDetailsServiceImpl)
         );
 
+        http.exceptionHandling(ex -> ex
+                .authenticationEntryPoint(authenticationEntryPoint())
+                .accessDeniedHandler(customAccessDeniedHandler())
+        );
+
         return http.build();
     }
 
@@ -139,6 +146,34 @@ public class SecurityConfiguration {
                 data = DataResponse.failure(CommonErr.UNKNOWN_LOGIN_ERROR);
             }
             out.write(JSON.toJSONString(data));
+            out.flush();
+            out.close();
+        };
+    }
+
+    @Bean
+    public AccessDeniedHandler customAccessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            // 设置返回编码格式，使用PrintWriter方法输出
+            response.setContentType("application/json;charset=utf-8");
+            PrintWriter out = response.getWriter();
+            // 设置resp返回状态，失败为403
+            response.setStatus(403);
+            out.write(JSON.toJSONString(DataResponse.failure(CommonErr.NO_AUTHORITY)));
+            out.flush();
+            out.close();
+        };
+    }
+
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return (request, response, authException) -> {
+            // 设置返回编码格式，使用PrintWriter方法输出
+            response.setContentType("application/json;charset=utf-8");
+            PrintWriter out = response.getWriter();
+            // 设置resp返回状态，失败为401
+            response.setStatus(401);
+            out.write(JSON.toJSONString(DataResponse.failure(CommonErr.NO_AUTHENTICATION)));
             out.flush();
             out.close();
         };

@@ -1,7 +1,7 @@
-package com.example.web.filmforum.Model.Film;
+package com.example.web.filmforum.Model.TvShow;
 
 import com.example.web.filmforum.Model.Actor.Actor;
-import com.example.web.filmforum.Model.Ratings.FilmRating;
+import com.example.web.filmforum.Model.Ratings.TvShowRating;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -16,9 +16,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "film")
-public class FilmPO {
-
+@Table(name = "tv_show")
+public class TvShowPO {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,15 +28,15 @@ public class FilmPO {
 
     private int year;
 
-    @OneToMany(mappedBy = "film", cascade = CascadeType.ALL)
-    private List<FilmRating> ratings;
+    private int episodes;
+
+    @OneToMany(mappedBy = "tvShow", cascade = CascadeType.ALL)
+    private List<TvShowRating> ratings;
 
     private String poster;
 
     @Size(max = 1000)
     private String summary;
-
-    private int duration; // minutes
 
     @ManyToOne
     @JoinColumn(name = "director_id")
@@ -50,12 +49,12 @@ public class FilmPO {
     private String trailer;
 
     @ElementCollection(fetch = FetchType.EAGER, targetClass = String.class)
-    @CollectionTable(name = "film_photos", joinColumns = @JoinColumn(name = "film_id"))
+    @CollectionTable(name = "tv_show_photos", joinColumns = @JoinColumn(name = "tv_show_id"))
     @Column(name = "photo")
     private List<String> photos;
 
     @ElementCollection(fetch = FetchType.EAGER, targetClass = String.class)
-    @CollectionTable(name = "film_tags", joinColumns = @JoinColumn(name = "film_id"))
+    @CollectionTable(name = "tv_show_tags", joinColumns = @JoinColumn(name = "tv_show_id"))
     @Column(name = "tag")
     private List<String> tags;
 

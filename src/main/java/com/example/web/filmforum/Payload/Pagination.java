@@ -2,11 +2,10 @@ package com.example.web.filmforum.Payload;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.example.web.filmforum.Util.H;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Pagination {

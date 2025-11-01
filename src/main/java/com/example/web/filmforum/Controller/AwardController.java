@@ -7,6 +7,7 @@ import com.example.web.filmforum.Service.AwardService;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,6 +18,7 @@ public class AwardController {
     private AwardService awardService;
 
     @PostMapping("/save")
+    @Secured("ROLE_ADMIN")
     public DataResponse save(@RequestBody JSONObject payload) {
         return awardService.save(payload);
     }
