@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface TvShowActorRepository extends JpaRepository<TvShowActor, Long> {
     List<TvShowActor> findByTvShow_Id(Long tvShowId);
+    List<TvShowActor> findByActor_Id(Long actorId);
 }
 
