@@ -1,7 +1,6 @@
 package com.example.web.filmforum.Model.Variety;
 
 import com.example.web.filmforum.Model.Actor.Actor;
-import com.example.web.filmforum.Model.Ratings.VarietyRating;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -30,9 +29,6 @@ public class VarietyPO {
 
     private int episodes;
 
-    @OneToMany(mappedBy = "variety", cascade = CascadeType.ALL)
-    private List<VarietyRating> ratings;
-
     private String poster;
 
     @Size(max = 1000)
@@ -60,4 +56,3 @@ public class VarietyPO {
 
     private int views;
 }
-

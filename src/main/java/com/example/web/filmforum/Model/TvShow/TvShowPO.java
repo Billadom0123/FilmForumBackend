@@ -1,7 +1,6 @@
 package com.example.web.filmforum.Model.TvShow;
 
 import com.example.web.filmforum.Model.Actor.Actor;
-import com.example.web.filmforum.Model.Ratings.TvShowRating;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -30,8 +29,6 @@ public class TvShowPO {
 
     private int episodes;
 
-    @OneToMany(mappedBy = "tvShow", cascade = CascadeType.ALL)
-    private List<TvShowRating> ratings;
 
     private String poster;
 

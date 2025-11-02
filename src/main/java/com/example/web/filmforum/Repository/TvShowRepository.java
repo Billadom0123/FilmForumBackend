@@ -19,7 +19,7 @@ public interface TvShowRepository extends JpaRepository<TvShowPO, Long> {
             "and (:year is null or t.year = :year) " +
             "and (:actor is null or a.name like concat('%',:actor,'%')) " +
             "and (:award is null or exists (select ar.id from com.example.web.filmforum.Model.Award.AwardRecordPO ar join ar.award aw where ar.targetId = t.id and aw.targetType = 'TVSHOW' and aw.name like concat('%',:award,'%'))) " +
-            "and (:minRating is null or (select coalesce(avg(r2.score),0) from com.example.web.filmforum.Model.Ratings.TvShowRating r2 where r2.tvShow = t) >= :minRating)"
+            "and (:minRating is null or (select coalesce(rs.ratingAvg,0) from com.example.web.filmforum.Model.Common.RatingStatPO rs where rs.targetType = 'TVSHOW' and rs.targetId = t.id) >= :minRating)"
     )
     Page<TvShowPO> queryShows(@Param("keyword") String keyword,
                               @Param("tag") String tag,
@@ -29,7 +29,6 @@ public interface TvShowRepository extends JpaRepository<TvShowPO, Long> {
                               @Param("minRating") Double minRating,
                               Pageable pageable);
 
-    @Query("select coalesce(avg(r.score),0) from com.example.web.filmforum.Model.Ratings.TvShowRating r where r.tvShow.id = :showId")
+    @Query("select coalesce((select rs.ratingAvg from com.example.web.filmforum.Model.Common.RatingStatPO rs where rs.targetType = 'TVSHOW' and rs.targetId = :showId), 0)")
     Double getAvgScore(@Param("showId") Long showId);
 }
-

@@ -6,6 +6,7 @@ import com.example.web.filmforum.Model.Film.FilmPO;
 import com.example.web.filmforum.Model.Film.FilmActor;
 import com.example.web.filmforum.Model.Award.AwardRecordPO;
 import com.example.web.filmforum.Model.Common.LikePO;
+import com.example.web.filmforum.Model.Common.FavoritePO;
 import com.example.web.filmforum.Model.User.UserPO;
 import com.example.web.filmforum.Payload.DataResponse;
 import com.example.web.filmforum.Payload.Enums.CommonErr;
@@ -20,8 +21,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @Service
 public class MovieService {
@@ -35,6 +36,12 @@ public class MovieService {
     @Autowired
     private LikeRepository likeRepository;
     @Autowired
+    private FavoriteRepository favoriteRepository;
+    @Autowired
+    private RatingService ratingService;
+    @Autowired
+    private RatingStatRepository ratingStatRepository;
+    @Autowired
     private UserRepository userRepository;
     @Autowired
     private ActorRepository actorRepository;
@@ -42,13 +49,20 @@ public class MovieService {
     public DataResponse list(String tag, Integer year, Double rating, String actor, String award, Pageable pageable) {
         Page<FilmPO> page = filmRepository.queryMovies(null, tag, year, actor, award, rating, pageable);
         JSONArray data = new JSONArray();
+        java.util.List<Long> ids = page.getContent().stream().map(FilmPO::getId).collect(Collectors.toList());
+        java.util.Map<Long, Double> avgMap = new java.util.HashMap<>();
+        if (!ids.isEmpty()) {
+            for (var rs : ratingStatRepository.findByTargetTypeAndTargetIdIn("FILM", ids)) {
+                avgMap.put(rs.getTargetId(), rs.getRatingAvg());
+            }
+        }
         for (FilmPO film : page.getContent()) {
-            Double avg = filmRepository.getAvgScore(film.getId());
+            Double avg = avgMap.getOrDefault(film.getId(), 0.0);
             JSONObject obj = H.build()
                     .put("id", film.getId())
                     .put("title", film.getTitle())
                     .put("year", film.getYear())
-                    .put("tag", film.getTags())
+                    .put("tags", film.getTags())
                     .put("rating", avg)
                     .put("poster", film.getPoster())
                     .toJson();
@@ -61,13 +75,20 @@ public class MovieService {
     public DataResponse search(String keyword, String tag, Integer year, String actor, String award, Double rating, Pageable pageable) {
         Page<FilmPO> page = filmRepository.queryMovies(keyword, tag, year, actor, award, rating, pageable);
         JSONArray data = new JSONArray();
+        java.util.List<Long> ids = page.getContent().stream().map(FilmPO::getId).collect(Collectors.toList());
+        java.util.Map<Long, Double> avgMap = new java.util.HashMap<>();
+        if (!ids.isEmpty()) {
+            for (var rs : ratingStatRepository.findByTargetTypeAndTargetIdIn("FILM", ids)) {
+                avgMap.put(rs.getTargetId(), rs.getRatingAvg());
+            }
+        }
         for (FilmPO film : page.getContent()) {
-            Double avg = filmRepository.getAvgScore(film.getId());
+            Double avg = avgMap.getOrDefault(film.getId(), 0.0);
             JSONObject obj = H.build()
                     .put("id", film.getId())
                     .put("title", film.getTitle())
                     .put("year", film.getYear())
-                    .put("tag", film.getTags())
+                    .put("tags", film.getTags())
                     .put("rating", avg)
                     .put("poster", film.getPoster())
                     .toJson();
@@ -91,7 +112,7 @@ public class MovieService {
         if (film == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
         film.setViews(film.getViews() + 1);
         filmRepository.save(film);
-        Double avg = filmRepository.getAvgScore(film.getId());
+        RatingService.RatingSummary sum = ratingService.summary("FILM", film.getId());
         JSONArray directorArr = new JSONArray();
         if (film.getDirector() != null) {
             directorArr.add(
@@ -103,9 +124,9 @@ public class MovieService {
                             .toJson()
             );
         }
-        List<FilmActor> faList = filmActorRepository.findByFilm_Id(film.getId());
+        java.util.List<com.example.web.filmforum.Model.Film.FilmActor> faList = filmActorRepository.findByFilm_Id(film.getId());
         JSONArray actors = new JSONArray();
-        for (FilmActor fa : faList) {
+        for (com.example.web.filmforum.Model.Film.FilmActor fa : faList) {
             if (fa.getActor() == null) continue;
             actors.add(
                     H.build()
@@ -116,9 +137,9 @@ public class MovieService {
                             .toJson()
             );
         }
-        List<AwardRecordPO> awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(film.getId(), "FILM");
+        java.util.List<com.example.web.filmforum.Model.Award.AwardRecordPO> awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(film.getId(), "FILM");
         JSONArray awards = new JSONArray();
-        for (AwardRecordPO ar : awardRecords) {
+        for (com.example.web.filmforum.Model.Award.AwardRecordPO ar : awardRecords) {
             awards.add(
                     H.build()
                             .put("id", ar.getId())
@@ -137,7 +158,7 @@ public class MovieService {
                         .put("original_title", film.getOriginalTitle())
                         .put("year", film.getYear())
                         .put("tags", film.getTags())
-                        .put("rating", avg)
+                        .put("rating", sum.avg())
                         .put("poster", film.getPoster())
                         .put("summary", film.getSummary())
                         .put("duration", film.getDuration())
@@ -183,54 +204,129 @@ public class MovieService {
         return DataResponse.ok();
     }
 
-    public DataResponse add(Map<String, Object> body) {
+    // 新增：评分提交/更新（改为使用统一RatingService）
+    public DataResponse rate(Long filmId, Integer score, String comment) {
+        UserPO me = currentUser();
+        if (me == null) return DataResponse.failure(CommonErr.NO_AUTHENTICATION);
+        FilmPO film = filmRepository.findById(filmId).orElse(null);
+        if (film == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        if (score == null || score < 1 || score > 10) return DataResponse.failure(CommonErr.PARAM_WRONG);
+        ratingService.rate("FILM", filmId, me, score, comment);
+        return DataResponse.ok();
+    }
+
+    // 新增：获取评分和海报（改为统一统计）
+    public DataResponse ratingPoster(Long filmId) {
+        FilmPO film = filmRepository.findById(filmId).orElse(null);
+        if (film == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        RatingService.RatingSummary s = ratingService.summary("FILM", filmId);
+        return DataResponse.success(
+                H.build()
+                        .put("id", film.getId())
+                        .put("rating", s.avg())
+                        .put("poster", film.getPoster())
+                        .toJson()
+        );
+    }
+
+    // 新增：收藏/取消收藏
+    public DataResponse favorite(Long filmId) {
+        UserPO me = currentUser();
+        if (me == null) return DataResponse.failure(CommonErr.NO_AUTHENTICATION);
+        FilmPO film = filmRepository.findById(filmId).orElse(null);
+        if (film == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        if (favoriteRepository.existsByUser_IdAndTargetTypeAndTargetId(me.getId(), "FILM", filmId)) {
+            return DataResponse.failure(CommonErr.OPERATE_REPEAT);
+        }
+        FavoritePO fav = new FavoritePO();
+        fav.setUser(me);
+        fav.setTargetType("FILM");
+        fav.setTargetId(filmId);
+        favoriteRepository.save(fav);
+        return DataResponse.ok();
+    }
+
+    public DataResponse unfavorite(Long filmId) {
+        UserPO me = currentUser();
+        if (me == null) return DataResponse.failure(CommonErr.NO_AUTHENTICATION);
+        FilmPO film = filmRepository.findById(filmId).orElse(null);
+        if (film == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        FavoritePO fav = favoriteRepository.findByUser_IdAndTargetTypeAndTargetId(me.getId(), "FILM", filmId);
+        if (fav == null) return DataResponse.failure(CommonErr.OPERATE_REPEAT);
+        favoriteRepository.delete(fav);
+        return DataResponse.ok();
+    }
+
+    public DataResponse add(JSONObject body) {
         if (body == null) return DataResponse.failure(CommonErr.PARAM_WRONG);
-        String title = (String) body.get("title");
-        if (title == null || title.trim().isEmpty()) return DataResponse.failure(CommonErr.PARAM_WRONG);
-        Integer year = body.get("year") instanceof Number ? ((Number) body.get("year")).intValue() : null;
-        if (year == null) return DataResponse.failure(CommonErr.PARAM_WRONG);
+        String title = body.getString("title");
+        Integer year = body.getInteger("year");
+        if (title == null || title.isBlank() || year == null) return DataResponse.failure(CommonErr.PARAM_WRONG);
 
-        FilmPO film = new FilmPO();
+        Long id = body.getLong("id");
+        FilmPO film = null;
+        boolean isUpdate = false;
+        if (id != null) {
+            film = filmRepository.findById(id).orElse(null);
+            if (film != null) isUpdate = true;
+        }
+        if (film == null) film = new FilmPO();
+
+        // 按 containsKey 控制更新；未传不动，显式 null 置空
         film.setTitle(title);
-        film.setOriginalTitle((String) body.get("original_title"));
+        if (body.containsKey("original_title")) film.setOriginalTitle(body.getString("original_title"));
         film.setYear(year);
-        film.setPoster((String) body.get("poster"));
-        film.setSummary((String) body.get("summary"));
-        film.setDuration(body.get("duration") instanceof Number ? ((Number) body.get("duration")).intValue() : 0);
-        film.setCountry((String) body.get("country"));
-        film.setLanguage((String) body.get("language"));
-        film.setTrailer((String) body.get("trailer"));
-        film.setPhotos(body.get("photos") instanceof List ? (List<String>) body.get("photos") : new ArrayList<>());
-        film.setTags(body.get("tags") instanceof List ? (List<String>) body.get("tags") : new ArrayList<>());
-        film.setViews(body.get("views") instanceof Number ? ((Number) body.get("views")).intValue() : 0);
+        if (body.containsKey("poster")) film.setPoster(body.getString("poster"));
+        if (body.containsKey("summary")) film.setSummary(body.getString("summary"));
+        if (body.containsKey("duration")) film.setDuration(body.getInteger("duration") == null ? 0 : body.getInteger("duration"));
+        if (body.containsKey("country")) film.setCountry(body.getString("country"));
+        if (body.containsKey("language")) film.setLanguage(body.getString("language"));
+        if (body.containsKey("trailer")) film.setTrailer(body.getString("trailer"));
+        if (body.containsKey("photos")) {
+            JSONArray arr = body.getJSONArray("photos");
+            film.setPhotos(arr == null ? new ArrayList<>() : arr.stream().map(Object::toString).collect(Collectors.toList()));
+        }
+        if (body.containsKey("tags")) {
+            JSONArray arr = body.getJSONArray("tags");
+            film.setTags(arr == null ? new ArrayList<>() : arr.stream().map(Object::toString).collect(Collectors.toList()));
+        }
+        if (body.containsKey("views")) film.setViews(body.getInteger("views") == null ? 0 : body.getInteger("views"));
 
-        // director: accept director_id
-        if (body.get("director_id") instanceof Number) {
-            Long dirId = ((Number) body.get("director_id")).longValue();
-            actorRepository.findById(dirId).ifPresent(film::setDirector);
+        // director
+        if (body.containsKey("director_id")) {
+            Long dirId = body.getLong("director_id");
+            if (dirId == null) film.setDirector(null); else actorRepository.findById(dirId).ifPresent(film::setDirector);
         }
 
         FilmPO saved = filmRepository.save(film);
 
-        // actors: list of {id, description, role}
-        if (body.get("actors") instanceof List) {
-            List<Map<String, Object>> actors = (List<Map<String, Object>>) body.get("actors");
-            for (Map<String, Object> a : actors) {
-                if (a == null) continue;
-                Object oid = a.get("id");
-                if (!(oid instanceof Number)) continue;
-                Long aid = ((Number) oid).longValue();
-                actorRepository.findById(aid).ifPresent(actor -> {
-                    FilmActor fa = new FilmActor();
-                    fa.setFilm(saved);
-                    fa.setActor(actor);
-                    fa.setDescription(a.get("description") == null ? null : a.get("description").toString());
-                    fa.setRole(a.get("role") == null ? null : a.get("role").toString());
-                    filmActorRepository.save(fa);
-                });
+        // 如果是更新，清空旧的演员关联（仅当请求包含 actors 时）
+        if (isUpdate && body.containsKey("actors")) {
+            List<FilmActor> olds = filmActorRepository.findByFilm_Id(saved.getId());
+            if (olds != null && !olds.isEmpty()) filmActorRepository.deleteAll(olds);
+        }
+
+        // actors: [{id, description, role}]
+        if (body.containsKey("actors")) {
+            JSONArray actors = body.getJSONArray("actors");
+            if (actors != null) {
+                for (int i = 0; i < actors.size(); i++) {
+                    JSONObject a = actors.getJSONObject(i);
+                    if (a == null) continue;
+                    Long aid = a.getLong("id");
+                    if (aid == null) continue;
+                    actorRepository.findById(aid).ifPresent(actor -> {
+                        FilmActor fa = new FilmActor();
+                        fa.setFilm(saved);
+                        fa.setActor(actor);
+                        fa.setDescription(a.getString("description"));
+                        fa.setRole(a.getString("role"));
+                        filmActorRepository.save(fa);
+                    });
+                }
             }
         }
 
-        return DataResponse.success(H.build().put("id", saved.getId()).toJson());
+        return DataResponse.success(H.build().put("id", saved.getId()).put("updated", isUpdate).toJson());
     }
 }

@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface VarietyGuestRepository extends JpaRepository<VarietyGuest, Long> {
     List<VarietyGuest> findByVariety_Id(Long varietyId);
+    List<VarietyGuest> findByActor_Id(Long actorId);
 }
-

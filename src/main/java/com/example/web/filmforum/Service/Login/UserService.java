@@ -10,6 +10,8 @@ import com.example.web.filmforum.Util.H;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -139,5 +141,30 @@ public class UserService {
 
         userRepository.save(newUser);
         return newUser;
+    }
+
+    // 更新用户头像
+    public DataResponse updateAvatar(JSONObject payload) {
+        if (payload == null) return DataResponse.failure(CommonErr.PARAM_WRONG);
+        String avatar = payload.getString("avatar");
+        if (avatar == null || avatar.isBlank()) {
+            return DataResponse.failure(30000, "avatar不能为空");
+        }
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return DataResponse.failure(CommonErr.NO_AUTHENTICATION);
+        }
+        String name = auth.getName();
+        UserPO user = userRepository.findByUsername(name);
+        if (user == null) user = userRepository.findByEmail(name);
+        if (user == null) return DataResponse.failure(CommonErr.NO_AUTHENTICATION);
+
+        user.setAvatar(avatar);
+        userRepository.save(user);
+        return DataResponse.success(H.build()
+                .put("id", user.getId())
+                .put("username", user.getUsername())
+                .put("avatar", user.getAvatar())
+                .toJson());
     }
 }

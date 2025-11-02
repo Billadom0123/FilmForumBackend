@@ -1,13 +1,12 @@
 package com.example.web.filmforum.Controller;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.example.web.filmforum.Payload.DataResponse;
 import com.example.web.filmforum.Service.TvShowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tvshows")
@@ -58,9 +57,37 @@ public class TvShowController {
         return tvShowService.unlike(id);
     }
 
+    // 新增：评分提交（含短评）
+    @Secured("ROLE_USER")
+    @PostMapping("/{id}/rate")
+    public DataResponse rate(@PathVariable("id") Long id, @RequestBody JSONObject body) {
+        Integer score = body.getInteger("score");
+        String comment = body.getString("comment");
+        return tvShowService.rate(id, score, comment);
+    }
+
+    // 新增：获取评分和海报
+    @GetMapping("/{id}/rating-poster")
+    public DataResponse ratingPoster(@PathVariable("id") Long id) {
+        return tvShowService.ratingPoster(id);
+    }
+
+    // 新增：收藏/取消收藏
+    @Secured("ROLE_USER")
+    @PostMapping("/{id}/favorite")
+    public DataResponse favorite(@PathVariable("id") Long id) {
+        return tvShowService.favorite(id);
+    }
+
+    @Secured("ROLE_USER")
+    @PostMapping("/{id}/unfavorite")
+    public DataResponse unfavorite(@PathVariable("id") Long id) {
+        return tvShowService.unfavorite(id);
+    }
+
     @Secured("ROLE_ADMIN")
     @PostMapping("/add")
-    public DataResponse addTvShow(@RequestBody Map<String, Object> body) {
+    public DataResponse addTvShow(@RequestBody JSONObject body) {
         return tvShowService.add(body);
     }
 }

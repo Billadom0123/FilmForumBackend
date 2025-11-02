@@ -46,4 +46,11 @@ public class UserController {
     public DataResponse unfollow(@PathVariable("id") Long targetUserId) {
         return followService.unfollowUser(targetUserId);
     }
+
+    // 新增：更新当前登录用户头像（仅POST）
+    @Secured("ROLE_USER")
+    @PostMapping("/avatar")
+    public DataResponse updateAvatar(@RequestBody JSONObject payload) {
+        return userService.updateAvatar(payload);
+    }
 }

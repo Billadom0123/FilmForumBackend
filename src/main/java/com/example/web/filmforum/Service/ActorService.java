@@ -20,6 +20,8 @@ import com.example.web.filmforum.Model.Film.FilmActor;
 import com.example.web.filmforum.Model.Award.AwardRecordPO;
 import java.util.List;
 
+import java.time.LocalDate;
+
 @Service
 public class ActorService {
 
@@ -115,5 +117,36 @@ public class ActorService {
                         .put("movies", movies)
                         .toJson()
         );
+    }
+
+    // 新增/更新演员信息（POST）
+    public DataResponse save(JSONObject payload) {
+        try {
+            Actor actor = new Actor();
+            String idStr = payload.getString("id");
+            if (idStr != null && !idStr.isEmpty()) {
+                try {
+                    actor.setId(Long.parseLong(idStr));
+                } catch (NumberFormatException ignore) { /* ignore invalid id, treat as create */ }
+            }
+            actor.setName(payload.getString("name"));
+            actor.setAvatar(payload.getString("avatar"));
+            String birthdayStr = payload.getString("birthday");
+            if (birthdayStr != null && !birthdayStr.isEmpty()) {
+                try { actor.setBirthday(LocalDate.parse(birthdayStr)); } catch (Exception ignore) { /* ignore bad date */ }
+            }
+            actor.setNationality(payload.getString("nationality"));
+            actor.setGender(payload.getString("gender"));
+            actor.setBiography(payload.getString("biography"));
+
+            if (actor.getName() == null || actor.getName().isBlank()) {
+                return DataResponse.failure(30000, "name不能为空");
+            }
+
+            actorRepository.save(actor);
+            return DataResponse.ok();
+        } catch (Exception e) {
+            return DataResponse.failure(500, "保存演员失败: " + e.getMessage());
+        }
     }
 }

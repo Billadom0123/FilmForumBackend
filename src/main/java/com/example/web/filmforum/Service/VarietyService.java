@@ -7,6 +7,7 @@ import com.example.web.filmforum.Model.Variety.VarietyGuest;
 import com.example.web.filmforum.Model.Variety.VarietySeason;
 import com.example.web.filmforum.Model.Award.AwardRecordPO;
 import com.example.web.filmforum.Model.Common.LikePO;
+import com.example.web.filmforum.Model.Common.FavoritePO;
 import com.example.web.filmforum.Model.User.UserPO;
 import com.example.web.filmforum.Payload.DataResponse;
 import com.example.web.filmforum.Payload.Enums.CommonErr;
@@ -21,8 +22,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @Service
 public class VarietyService {
@@ -35,6 +36,12 @@ public class VarietyService {
     private VarietySeasonRepository varietySeasonRepository;
     @Autowired
     private LikeRepository likeRepository;
+    @Autowired
+    private FavoriteRepository favoriteRepository;
+    @Autowired
+    private RatingService ratingService;
+    @Autowired
+    private RatingStatRepository ratingStatRepository;
     @Autowired
     private AwardRecordRepository awardRecordRepository;
     @Autowired
@@ -54,13 +61,20 @@ public class VarietyService {
     public DataResponse list(String tag, Integer year, Double rating, String actor, String award, Pageable pageable) {
         Page<VarietyPO> page = varietyRepository.queryVarieties(null, tag, year, actor, award, rating, pageable);
         JSONArray data = new JSONArray();
+        java.util.List<Long> ids = page.getContent().stream().map(VarietyPO::getId).collect(Collectors.toList());
+        java.util.Map<Long, Double> avgMap = new java.util.HashMap<>();
+        if (!ids.isEmpty()) {
+            for (var rs : ratingStatRepository.findByTargetTypeAndTargetIdIn("VARIETY", ids)) {
+                avgMap.put(rs.getTargetId(), rs.getRatingAvg());
+            }
+        }
         for (VarietyPO v : page.getContent()) {
-            Double avg = varietyRepository.getAvgScore(v.getId());
+            Double avg = avgMap.getOrDefault(v.getId(), 0.0);
             JSONObject obj = H.build()
                     .put("id", v.getId())
                     .put("title", v.getTitle())
                     .put("year", v.getYear())
-                    .put("tag", v.getTags())
+                    .put("tags", v.getTags())
                     .put("rating", avg)
                     .put("poster", v.getPoster())
                     .toJson();
@@ -75,7 +89,7 @@ public class VarietyService {
         if (v == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
         v.setViews(v.getViews() + 1);
         varietyRepository.save(v);
-        Double avg = varietyRepository.getAvgScore(v.getId());
+        RatingService.RatingSummary sum = ratingService.summary("VARIETY", v.getId());
         JSONArray hostArr = new JSONArray();
         if (v.getHost() != null) {
             hostArr.add(
@@ -87,9 +101,9 @@ public class VarietyService {
                             .toJson()
             );
         }
-        List<VarietyGuest> rels = varietyGuestRepository.findByVariety_Id(v.getId());
+        java.util.List<com.example.web.filmforum.Model.Variety.VarietyGuest> rels = varietyGuestRepository.findByVariety_Id(v.getId());
         JSONArray guests = new JSONArray();
-        for (VarietyGuest g : rels) {
+        for (com.example.web.filmforum.Model.Variety.VarietyGuest g : rels) {
             if (g.getActor() == null) continue;
             guests.add(
                     H.build()
@@ -100,9 +114,9 @@ public class VarietyService {
                             .toJson()
             );
         }
-        List<VarietySeason> seasonsList = varietySeasonRepository.findByVariety_IdOrderByNumberAsc(v.getId());
+        java.util.List<com.example.web.filmforum.Model.Variety.VarietySeason> seasonsList = varietySeasonRepository.findByVariety_IdOrderByNumberAsc(v.getId());
         JSONArray seasons = new JSONArray();
-        for (VarietySeason s : seasonsList) {
+        for (com.example.web.filmforum.Model.Variety.VarietySeason s : seasonsList) {
             seasons.add(
                     H.build()
                             .put("id", s.getId())
@@ -113,9 +127,9 @@ public class VarietyService {
                             .toJson()
             );
         }
-        List<AwardRecordPO> awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(v.getId(), "VARIETY");
+        java.util.List<com.example.web.filmforum.Model.Award.AwardRecordPO> awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(v.getId(), "VARIETY");
         JSONArray awards = new JSONArray();
-        for (AwardRecordPO ar : awardRecords) {
+        for (com.example.web.filmforum.Model.Award.AwardRecordPO ar : awardRecords) {
             awards.add(
                     H.build()
                             .put("id", ar.getId())
@@ -135,7 +149,7 @@ public class VarietyService {
                         .put("year", v.getYear())
                         .put("episodes", v.getEpisodes())
                         .put("tags", v.getTags())
-                        .put("rating", avg)
+                        .put("rating", sum.avg())
                         .put("poster", v.getPoster())
                         .put("summary", v.getSummary())
                         .put("country", v.getCountry())
@@ -155,13 +169,20 @@ public class VarietyService {
     public DataResponse search(String keyword, String tag, Integer year, String actor, String award, Double rating, Pageable pageable) {
         Page<VarietyPO> page = varietyRepository.queryVarieties(keyword, tag, year, actor, award, rating, pageable);
         JSONArray data = new JSONArray();
+        java.util.List<Long> ids = page.getContent().stream().map(VarietyPO::getId).collect(Collectors.toList());
+        java.util.Map<Long, Double> avgMap = new java.util.HashMap<>();
+        if (!ids.isEmpty()) {
+            for (var rs : ratingStatRepository.findByTargetTypeAndTargetIdIn("VARIETY", ids)) {
+                avgMap.put(rs.getTargetId(), rs.getRatingAvg());
+            }
+        }
         for (VarietyPO v : page.getContent()) {
-            Double avg = varietyRepository.getAvgScore(v.getId());
+            Double avg = avgMap.getOrDefault(v.getId(), 0.0);
             JSONObject obj = H.build()
                     .put("id", v.getId())
                     .put("title", v.getTitle())
                     .put("year", v.getYear())
-                    .put("tag", v.getTags())
+                    .put("tags", v.getTags())
                     .put("rating", avg)
                     .put("poster", v.getPoster())
                     .toJson();
@@ -198,67 +219,147 @@ public class VarietyService {
         return DataResponse.ok();
     }
 
-    public DataResponse add(Map<String, Object> body) {
+    // 新增：评分提交/更新（统一RatingService）
+    public DataResponse rate(Long varietyId, Integer score, String comment) {
+        UserPO me = currentUser();
+        if (me == null) return DataResponse.failure(CommonErr.NO_AUTHENTICATION);
+        VarietyPO variety = varietyRepository.findById(varietyId).orElse(null);
+        if (variety == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        if (score == null || score < 1 || score > 10) return DataResponse.failure(CommonErr.PARAM_WRONG);
+        ratingService.rate("VARIETY", varietyId, me, score, comment);
+        return DataResponse.ok();
+    }
+
+    // 新增：获取评分和海报（统一统计）
+    public DataResponse ratingPoster(Long varietyId) {
+        VarietyPO v = varietyRepository.findById(varietyId).orElse(null);
+        if (v == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        RatingService.RatingSummary s = ratingService.summary("VARIETY", varietyId);
+        return DataResponse.success(
+                H.build()
+                        .put("id", v.getId())
+                        .put("rating", s.avg())
+                        .put("poster", v.getPoster())
+                        .toJson()
+        );
+    }
+
+    // 新增：收藏/取消收藏
+    public DataResponse favorite(Long varietyId) {
+        UserPO me = currentUser();
+        if (me == null) return DataResponse.failure(CommonErr.NO_AUTHENTICATION);
+        VarietyPO v = varietyRepository.findById(varietyId).orElse(null);
+        if (v == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        if (favoriteRepository.existsByUser_IdAndTargetTypeAndTargetId(me.getId(), "VARIETY", varietyId)) {
+            return DataResponse.failure(CommonErr.OPERATE_REPEAT);
+        }
+        FavoritePO fav = new FavoritePO();
+        fav.setUser(me);
+        fav.setTargetType("VARIETY");
+        fav.setTargetId(varietyId);
+        favoriteRepository.save(fav);
+        return DataResponse.ok();
+    }
+
+    public DataResponse unfavorite(Long varietyId) {
+        UserPO me = currentUser();
+        if (me == null) return DataResponse.failure(CommonErr.NO_AUTHENTICATION);
+        VarietyPO v = varietyRepository.findById(varietyId).orElse(null);
+        if (v == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        FavoritePO fav = favoriteRepository.findByUser_IdAndTargetTypeAndTargetId(me.getId(), "VARIETY", varietyId);
+        if (fav == null) return DataResponse.failure(CommonErr.OPERATE_REPEAT);
+        favoriteRepository.delete(fav);
+        return DataResponse.ok();
+    }
+
+    public DataResponse add(JSONObject body) {
         if (body == null) return DataResponse.failure(CommonErr.PARAM_WRONG);
-        String title = (String) body.get("title");
-        if (title == null || title.trim().isEmpty()) return DataResponse.failure(CommonErr.PARAM_WRONG);
-        Integer year = body.get("year") instanceof Number ? ((Number) body.get("year")).intValue() : null;
-        if (year == null) return DataResponse.failure(CommonErr.PARAM_WRONG);
+        String title = body.getString("title");
+        Integer year = body.getInteger("year");
+        if (title == null || title.isBlank() || year == null) return DataResponse.failure(CommonErr.PARAM_WRONG);
 
-        VarietyPO v = new VarietyPO();
+        Long id = body.getLong("id");
+        VarietyPO v = null;
+        boolean isUpdate = false;
+        if (id != null) {
+            v = varietyRepository.findById(id).orElse(null);
+            if (v != null) isUpdate = true;
+        }
+        if (v == null) v = new VarietyPO();
+
         v.setTitle(title);
-        v.setOriginalTitle((String) body.get("original_title"));
+        if (body.containsKey("original_title")) v.setOriginalTitle(body.getString("original_title"));
         v.setYear(year);
-        v.setEpisodes(body.get("episodes") instanceof Number ? ((Number) body.get("episodes")).intValue() : 0);
-        v.setPoster((String) body.get("poster"));
-        v.setSummary((String) body.get("summary"));
-        v.setCountry((String) body.get("country"));
-        v.setLanguage((String) body.get("language"));
-        v.setTrailer((String) body.get("trailer"));
-        v.setPhotos(body.get("photos") instanceof List ? (List<String>) body.get("photos") : new ArrayList<>());
-        v.setTags(body.get("tags") instanceof List ? (List<String>) body.get("tags") : new ArrayList<>());
-        v.setViews(body.get("views") instanceof Number ? ((Number) body.get("views")).intValue() : 0);
+        if (body.containsKey("episodes")) v.setEpisodes(body.getInteger("episodes") == null ? 0 : body.getInteger("episodes"));
+        if (body.containsKey("poster")) v.setPoster(body.getString("poster"));
+        if (body.containsKey("summary")) v.setSummary(body.getString("summary"));
+        if (body.containsKey("country")) v.setCountry(body.getString("country"));
+        if (body.containsKey("language")) v.setLanguage(body.getString("language"));
+        if (body.containsKey("trailer")) v.setTrailer(body.getString("trailer"));
+        if (body.containsKey("photos")) {
+            JSONArray arr = body.getJSONArray("photos");
+            v.setPhotos(arr == null ? new ArrayList<>() : arr.stream().map(Object::toString).collect(Collectors.toList()));
+        }
+        if (body.containsKey("tags")) {
+            JSONArray arr = body.getJSONArray("tags");
+            v.setTags(arr == null ? new ArrayList<>() : arr.stream().map(Object::toString).collect(Collectors.toList()));
+        }
+        if (body.containsKey("views")) v.setViews(body.getInteger("views") == null ? 0 : body.getInteger("views"));
 
-        if (body.get("host_id") instanceof Number) {
-            Long hid = ((Number) body.get("host_id")).longValue();
-            actorRepository.findById(hid).ifPresent(v::setHost);
+        // host
+        if (body.containsKey("host_id")) {
+            Long hid = body.getLong("host_id");
+            if (hid == null) v.setHost(null); else actorRepository.findById(hid).ifPresent(v::setHost);
         }
 
         VarietyPO saved = varietyRepository.save(v);
 
         // guests
-        if (body.get("guests") instanceof List) {
-            List<Map<String, Object>> guests = (List<Map<String, Object>>) body.get("guests");
-            for (Map<String, Object> g : guests) {
-                if (g == null) continue;
-                Object oid = g.get("id");
-                if (!(oid instanceof Number)) continue;
-                Long aid = ((Number) oid).longValue();
-                actorRepository.findById(aid).ifPresent(actor -> {
-                    VarietyGuest vg = new VarietyGuest();
-                    vg.setVariety(saved);
-                    vg.setActor(actor);
-                    vg.setDescription(g.get("description") == null ? null : g.get("description").toString());
-                    varietyGuestRepository.save(vg);
-                });
+        if (isUpdate && body.containsKey("guests")) {
+            var olds = varietyGuestRepository.findByVariety_Id(saved.getId());
+            if (olds != null && !olds.isEmpty()) varietyGuestRepository.deleteAll(olds);
+        }
+        if (body.containsKey("guests")) {
+            JSONArray arr = body.getJSONArray("guests");
+            if (arr != null) {
+                for (int i = 0; i < arr.size(); i++) {
+                    JSONObject g = arr.getJSONObject(i);
+                    if (g == null) continue;
+                    Long aid = g.getLong("id");
+                    if (aid == null) continue;
+                    actorRepository.findById(aid).ifPresent(actor -> {
+                        VarietyGuest vg = new VarietyGuest();
+                        vg.setVariety(saved);
+                        vg.setActor(actor);
+                        vg.setDescription(g.getString("description"));
+                        varietyGuestRepository.save(vg);
+                    });
+                }
             }
         }
 
         // seasons
-        if (body.get("seasons") instanceof List) {
-            List<Map<String, Object>> seasons = (List<Map<String, Object>>) body.get("seasons");
-            for (Map<String, Object> s : seasons) {
-                if (s == null) continue;
-                VarietySeason season = new VarietySeason();
-                season.setVariety(saved);
-                season.setNumber(s.get("number") instanceof Number ? ((Number) s.get("number")).intValue() : 0);
-                season.setTitle(s.get("title") == null ? null : s.get("title").toString());
-                season.setEpisodes(s.get("episodes") instanceof Number ? ((Number) s.get("episodes")).intValue() : 0);
-                season.setYear(s.get("year") instanceof Number ? ((Number) s.get("year")).intValue() : 0);
-                varietySeasonRepository.save(season);
+        if (isUpdate && body.containsKey("seasons")) {
+            var olds = varietySeasonRepository.findByVariety_IdOrderByNumberAsc(saved.getId());
+            if (olds != null && !olds.isEmpty()) varietySeasonRepository.deleteAll(olds);
+        }
+        if (body.containsKey("seasons")) {
+            JSONArray arr = body.getJSONArray("seasons");
+            if (arr != null) {
+                for (int i = 0; i < arr.size(); i++) {
+                    JSONObject s = arr.getJSONObject(i);
+                    if (s == null) continue;
+                    VarietySeason season = new VarietySeason();
+                    season.setVariety(saved);
+                    season.setNumber(s.getInteger("number") == null ? 0 : s.getInteger("number"));
+                    season.setTitle(s.getString("title"));
+                    season.setEpisodes(s.getInteger("episodes") == null ? 0 : s.getInteger("episodes"));
+                    season.setYear(s.getInteger("year") == null ? 0 : s.getInteger("year"));
+                    varietySeasonRepository.save(season);
+                }
             }
         }
 
-        return DataResponse.success(H.build().put("id", saved.getId()).toJson());
+        return DataResponse.success(H.build().put("id", saved.getId()).put("updated", isUpdate).toJson());
     }
 }

@@ -1,7 +1,6 @@
 package com.example.web.filmforum.Model.Film;
 
 import com.example.web.filmforum.Model.Actor.Actor;
-import com.example.web.filmforum.Model.Ratings.FilmRating;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -28,9 +27,6 @@ public class FilmPO {
     private String originalTitle;
 
     private int year;
-
-    @OneToMany(mappedBy = "film", cascade = CascadeType.ALL)
-    private List<FilmRating> ratings;
 
     private String poster;
 

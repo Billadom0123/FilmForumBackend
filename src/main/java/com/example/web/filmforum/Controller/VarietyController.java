@@ -1,13 +1,12 @@
 package com.example.web.filmforum.Controller;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.example.web.filmforum.Payload.DataResponse;
 import com.example.web.filmforum.Service.VarietyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/varieties")
@@ -60,7 +59,7 @@ public class VarietyController {
 
     @Secured("ROLE_ADMIN")
     @PostMapping("/add")
-    public DataResponse addVariety(@RequestBody Map<String, Object> body) {
+    public DataResponse addVariety(@RequestBody JSONObject body) {
         return varietyService.add(body);
     }
 }

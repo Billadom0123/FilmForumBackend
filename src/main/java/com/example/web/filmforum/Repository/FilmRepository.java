@@ -21,7 +21,7 @@ public interface FilmRepository extends JpaRepository<FilmPO, Long> {
             "and (:year is null or f.year = :year) " +
             "and (:actor is null or a.name like concat('%',:actor,'%')) " +
             "and (:award is null or exists (select ar.id from com.example.web.filmforum.Model.Award.AwardRecordPO ar join ar.award aw where ar.targetId = f.id and aw.targetType = 'FILM' and aw.name like concat('%',:award,'%'))) " +
-            "and (:minRating is null or (select coalesce(avg(r2.score),0) from com.example.web.filmforum.Model.Ratings.FilmRating r2 where r2.film = f) >= :minRating)"
+            "and (:minRating is null or (select coalesce(rs.ratingAvg,0) from com.example.web.filmforum.Model.Common.RatingStatPO rs where rs.targetType = 'FILM' and rs.targetId = f.id) >= :minRating)"
     )
     Page<FilmPO> queryMovies(@Param("keyword") String keyword,
                              @Param("tag") String tag,
@@ -31,6 +31,6 @@ public interface FilmRepository extends JpaRepository<FilmPO, Long> {
                              @Param("minRating") Double minRating,
                              Pageable pageable);
 
-    @Query("select coalesce(avg(r.score),0) from com.example.web.filmforum.Model.Ratings.FilmRating r where r.film.id = :filmId")
+    @Query("select coalesce((select rs.ratingAvg from com.example.web.filmforum.Model.Common.RatingStatPO rs where rs.targetType = 'FILM' and rs.targetId = :filmId), 0)")
     Double getAvgScore(@Param("filmId") Long filmId);
 }
