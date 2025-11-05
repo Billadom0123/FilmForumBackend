@@ -51,20 +51,20 @@ public class MovieController {
         return movieService.detail(id);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/like")
     public DataResponse like(@PathVariable("id") Long id) {
         return movieService.like(id);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/unlike")
     public DataResponse unlike(@PathVariable("id") Long id) {
         return movieService.unlike(id);
     }
 
     // 新增：评分提交（含短评）
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/rate")
     public DataResponse rate(@PathVariable("id") Long id, @RequestBody JSONObject body) {
         Integer score = body.getInteger("score");
@@ -79,13 +79,13 @@ public class MovieController {
     }
 
     // 新增：收藏/取消收藏
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/favorite")
     public DataResponse favorite(@PathVariable("id") Long id) {
         return movieService.favorite(id);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/unfavorite")
     public DataResponse unfavorite(@PathVariable("id") Long id) {
         return movieService.unfavorite(id);

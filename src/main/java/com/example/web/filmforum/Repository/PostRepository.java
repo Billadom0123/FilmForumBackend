@@ -12,8 +12,8 @@ import org.springframework.stereotype.Repository;
 public interface PostRepository extends JpaRepository<PostPO, Long> {
 
     @Query("select p from PostPO p " +
-            "where (:category is null or p.category = :category) " +
-            "and (:keyword is null or " +
+            "where ((:category is null or trim(:category) = '') or p.category = :category) " +
+            "and ((:keyword is null or trim(:keyword) = '') or " +
             "(p.title like concat('%', :keyword, '%') " +
             "or p.content like concat('%', :keyword, '%'))) " +
             "order by p.createTime desc")

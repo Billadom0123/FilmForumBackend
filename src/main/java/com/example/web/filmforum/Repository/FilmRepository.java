@@ -13,15 +13,15 @@ public interface FilmRepository extends JpaRepository<FilmPO, Long> {
 
 
     @Query(value = "select distinct f from FilmPO f " +
-            "left join com.example.web.filmforum.Model.Film.FilmActor fa on fa.film = f " +
-            "left join com.example.web.filmforum.Model.Actor.Actor a on a = fa.actor " +
-            "where (:keyword is null or f.title like concat('%',:keyword,'%') " +
+            "left join FilmActor fa on fa.film = f " +
+            "left join Actor a on a = fa.actor " +
+            "where ((:keyword is null or trim(:keyword) = '') or f.title like concat('%',:keyword,'%') " +
             "or f.originalTitle like concat('%',:keyword,'%')) " +
-            "and (:tag is null or :tag member of f.tags) " +
+            "and ((:tag is null or trim(:tag) = '') or :tag member of f.tags) " +
             "and (:year is null or f.year = :year) " +
-            "and (:actor is null or a.name like concat('%',:actor,'%')) " +
-            "and (:award is null or exists (select ar.id from com.example.web.filmforum.Model.Award.AwardRecordPO ar join ar.award aw where ar.targetId = f.id and aw.targetType = 'FILM' and aw.name like concat('%',:award,'%'))) " +
-            "and (:minRating is null or (select coalesce(rs.ratingAvg,0) from com.example.web.filmforum.Model.Common.RatingStatPO rs where rs.targetType = 'FILM' and rs.targetId = f.id) >= :minRating)"
+            "and ((:actor is null or trim(:actor) = '') or a.name like concat('%',:actor,'%')) " +
+            "and ((:award is null or trim(:award) = '') or exists (select ar.id from AwardRecordPO ar join ar.award aw where ar.targetId = f.id and aw.targetType = 'FILM' and aw.name like concat('%',:award,'%'))) " +
+            "and (:minRating is null or (select coalesce(rs.ratingAvg,0) from RatingStatPO rs where rs.targetType = 'FILM' and rs.targetId = f.id) >= :minRating)"
     )
     Page<FilmPO> queryMovies(@Param("keyword") String keyword,
                              @Param("tag") String tag,
@@ -31,6 +31,6 @@ public interface FilmRepository extends JpaRepository<FilmPO, Long> {
                              @Param("minRating") Double minRating,
                              Pageable pageable);
 
-    @Query("select coalesce((select rs.ratingAvg from com.example.web.filmforum.Model.Common.RatingStatPO rs where rs.targetType = 'FILM' and rs.targetId = :filmId), 0)")
+    @Query("select coalesce((select rs.ratingAvg from RatingStatPO rs where rs.targetType = 'FILM' and rs.targetId = :filmId), 0)")
     Double getAvgScore(@Param("filmId") Long filmId);
 }

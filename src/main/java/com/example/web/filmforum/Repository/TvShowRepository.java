@@ -12,14 +12,14 @@ import org.springframework.stereotype.Repository;
 public interface TvShowRepository extends JpaRepository<TvShowPO, Long> {
 
     @Query(value = "select distinct t from TvShowPO t " +
-            "left join com.example.web.filmforum.Model.TvShow.TvShowActor ta on ta.tvShow = t " +
-            "left join com.example.web.filmforum.Model.Actor.Actor a on a = ta.actor " +
-            "where (:keyword is null or t.title like concat('%',:keyword,'%') or t.originalTitle like concat('%',:keyword,'%')) " +
-            "and (:tag is null or :tag member of t.tags) " +
+            "left join TvShowActor ta on ta.tvShow = t " +
+            "left join Actor a on a = ta.actor " +
+            "where ((:keyword is null or trim(:keyword) = '') or t.title like concat('%',:keyword,'%') or t.originalTitle like concat('%',:keyword,'%')) " +
+            "and ((:tag is null or trim(:tag) = '') or :tag member of t.tags) " +
             "and (:year is null or t.year = :year) " +
-            "and (:actor is null or a.name like concat('%',:actor,'%')) " +
-            "and (:award is null or exists (select ar.id from com.example.web.filmforum.Model.Award.AwardRecordPO ar join ar.award aw where ar.targetId = t.id and aw.targetType = 'TVSHOW' and aw.name like concat('%',:award,'%'))) " +
-            "and (:minRating is null or (select coalesce(rs.ratingAvg,0) from com.example.web.filmforum.Model.Common.RatingStatPO rs where rs.targetType = 'TVSHOW' and rs.targetId = t.id) >= :minRating)"
+            "and ((:actor is null or trim(:actor) = '') or a.name like concat('%',:actor,'%')) " +
+            "and ((:award is null or trim(:award) = '') or exists (select ar.id from AwardRecordPO ar join ar.award aw where ar.targetId = t.id and aw.targetType = 'TVSHOW' and aw.name like concat('%',:award,'%'))) " +
+            "and (:minRating is null or (select coalesce(rs.ratingAvg,0) from RatingStatPO rs where rs.targetType = 'TVSHOW' and rs.targetId = t.id) >= :minRating)"
     )
     Page<TvShowPO> queryShows(@Param("keyword") String keyword,
                               @Param("tag") String tag,
@@ -29,6 +29,6 @@ public interface TvShowRepository extends JpaRepository<TvShowPO, Long> {
                               @Param("minRating") Double minRating,
                               Pageable pageable);
 
-    @Query("select coalesce((select rs.ratingAvg from com.example.web.filmforum.Model.Common.RatingStatPO rs where rs.targetType = 'TVSHOW' and rs.targetId = :showId), 0)")
+    @Query("select coalesce((select rs.ratingAvg from RatingStatPO rs where rs.targetType = 'TVSHOW' and rs.targetId = :showId), 0)")
     Double getAvgScore(@Param("showId") Long showId);
 }

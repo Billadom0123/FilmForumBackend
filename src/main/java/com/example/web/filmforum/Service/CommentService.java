@@ -18,7 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
+import java.util.List;
 
 @Service
 public class CommentService {
@@ -45,8 +45,8 @@ public class CommentService {
         Page<CommentPO> page = commentRepository.findByPost_IdAndParentIsNullOrderByCreateTimeDesc(postId, pageable);
         JSONArray arr = new JSONArray();
         for (CommentPO c : page.getContent()) {
-            var replies = commentRepository.findByParent_IdOrderByCreateTimeAsc(c.getId());
-            var repliesArr = new JSONArray();
+            List<CommentPO> replies = commentRepository.findByParent_IdOrderByCreateTimeAsc(c.getId());
+            JSONArray repliesArr = new JSONArray();
             for (CommentPO r : replies) {
                 repliesArr.add(
                         H.build()

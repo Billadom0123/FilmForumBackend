@@ -12,14 +12,14 @@ import org.springframework.stereotype.Repository;
 public interface VarietyRepository extends JpaRepository<VarietyPO, Long> {
 
     @Query(value = "select distinct v from VarietyPO v " +
-            "left join com.example.web.filmforum.Model.Variety.VarietyGuest vg on vg.variety = v " +
-            "left join com.example.web.filmforum.Model.Actor.Actor a on a = vg.actor " +
-            "where (:keyword is null or v.title like concat('%',:keyword,'%') or v.originalTitle like concat('%',:keyword,'%')) " +
-            "and (:tag is null or :tag member of v.tags) " +
+            "left join VarietyGuest vg on vg.variety = v " +
+            "left join Actor a on a = vg.actor " +
+            "where ((:keyword is null or trim(:keyword) = '') or v.title like concat('%',:keyword,'%') or v.originalTitle like concat('%',:keyword,'%')) " +
+            "and ((:tag is null or trim(:tag) = '') or :tag member of v.tags) " +
             "and (:year is null or v.year = :year) " +
-            "and (:actor is null or a.name like concat('%',:actor,'%') or (v.host is not null and v.host.name like concat('%',:actor,'%'))) " +
-            "and (:award is null or exists (select ar.id from com.example.web.filmforum.Model.Award.AwardRecordPO ar join ar.award aw where ar.targetId = v.id and aw.targetType = 'VARIETY' and aw.name like concat('%',:award,'%'))) " +
-            "and (:minRating is null or (select coalesce(avg(r2.score),0) from com.example.web.filmforum.Model.Common.RatingPO r2 where r2.targetType = 'VARIETY' and r2.targetId = v.id) >= :minRating)"
+            "and ((:actor is null or trim(:actor) = '') or a.name like concat('%',:actor,'%') or (v.host is not null and v.host.name like concat('%',:actor,'%'))) " +
+            "and ((:award is null or trim(:award) = '') or exists (select ar.id from AwardRecordPO ar join ar.award aw where ar.targetId = v.id and aw.targetType = 'VARIETY' and aw.name like concat('%',:award,'%'))) " +
+            "and (:minRating is null or (select coalesce(avg(r2.score),0) from RatingPO r2 where r2.targetType = 'VARIETY' and r2.targetId = v.id) >= :minRating)"
     )
     Page<VarietyPO> queryVarieties(@Param("keyword") String keyword,
                                    @Param("tag") String tag,
@@ -29,6 +29,6 @@ public interface VarietyRepository extends JpaRepository<VarietyPO, Long> {
                                    @Param("minRating") Double minRating,
                                    Pageable pageable);
 
-    @Query("select coalesce(avg(r.score),0) from com.example.web.filmforum.Model.Common.RatingPO r where r.targetType = 'VARIETY' and r.targetId = :varietyId")
+    @Query("select coalesce(avg(r.score),0) from RatingPO r where r.targetType = 'VARIETY' and r.targetId = :varietyId")
     Double getAvgScore(@Param("varietyId") Long varietyId);
 }

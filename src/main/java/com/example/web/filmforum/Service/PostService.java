@@ -21,7 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Service
 public class PostService {
@@ -123,7 +123,11 @@ public class PostService {
         p.setCategory(body.getString("category"));
         JSONArray tagArr = body.getJSONArray("tags");
         if (tagArr != null) {
-            List<String> tags = tagArr.stream().map(Object::toString).collect(Collectors.toList());
+            List<String> tags = new ArrayList<>();
+            for (int i = 0; i < tagArr.size(); i++) {
+                Object o = tagArr.get(i);
+                tags.add(o == null ? null : o.toString());
+            }
             p.setTags(tags);
         }
         p.setAuthor(me);
@@ -145,7 +149,16 @@ public class PostService {
         if (body.containsKey("category")) p.setCategory(body.getString("category"));
         if (body.containsKey("tags")) {
             JSONArray tagArr = body.getJSONArray("tags");
-            p.setTags(tagArr == null ? null : tagArr.stream().map(Object::toString).collect(Collectors.toList()));
+            if (tagArr == null) {
+                p.setTags(null);
+            } else {
+                List<String> tags = new ArrayList<>();
+                for (int i = 0; i < tagArr.size(); i++) {
+                    Object o = tagArr.get(i);
+                    tags.add(o == null ? null : o.toString());
+                }
+                p.setTags(tags);
+            }
         }
         PostPO saved = postRepository.save(p);
         return DataResponse.success(H.build().put("id", saved.getId()).put("updated", true).toJson());

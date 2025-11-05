@@ -28,6 +28,8 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <!-- 统一设置时间戳格式（避免 Windows 非法字符） -->
+        <maven.build.timestamp.format>yyyyMMddHHmmss</maven.build.timestamp.format>
     </properties>
     <dependencies>
         <dependency>
@@ -138,6 +140,8 @@
     </dependencies>
 
     <build>
+        <!-- 打包文件名：版本号-时间戳.jar（使用 Maven 内置 maven.build.timestamp） -->
+        <finalName>${project.version}-${maven.build.timestamp}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

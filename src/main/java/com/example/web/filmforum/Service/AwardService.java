@@ -26,6 +26,10 @@ public class AwardService {
 
     public DataResponse save(JSONObject payload) {
 
+        if (awardRepository.findByName(payload.getString("name")).isPresent()) {
+            return DataResponse.failure(CommonErr.DUPLICATE_AWARD_NAME);
+        }
+
         AwardPO awardPO = new AwardPO();
         String idStr = payload.getString("id");
         if (idStr != null && !idStr.isEmpty()) {

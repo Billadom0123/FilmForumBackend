@@ -20,9 +20,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.Map;
+import com.example.web.filmforum.Model.Common.RatingStatPO;
 
 @Service
 public class MovieService {
@@ -49,10 +51,14 @@ public class MovieService {
     public DataResponse list(String tag, Integer year, Double rating, String actor, String award, Pageable pageable) {
         Page<FilmPO> page = filmRepository.queryMovies(null, tag, year, actor, award, rating, pageable);
         JSONArray data = new JSONArray();
-        java.util.List<Long> ids = page.getContent().stream().map(FilmPO::getId).collect(Collectors.toList());
-        java.util.Map<Long, Double> avgMap = new java.util.HashMap<>();
+        List<Long> ids = new ArrayList<>();
+        for (FilmPO item : page.getContent()) {
+            ids.add(item.getId());
+        }
+        Map<Long, Double> avgMap = new HashMap<>();
         if (!ids.isEmpty()) {
-            for (var rs : ratingStatRepository.findByTargetTypeAndTargetIdIn("FILM", ids)) {
+            List<RatingStatPO> stats = ratingStatRepository.findByTargetTypeAndTargetIdIn("FILM", ids);
+            for (RatingStatPO rs : stats) {
                 avgMap.put(rs.getTargetId(), rs.getRatingAvg());
             }
         }
@@ -75,10 +81,14 @@ public class MovieService {
     public DataResponse search(String keyword, String tag, Integer year, String actor, String award, Double rating, Pageable pageable) {
         Page<FilmPO> page = filmRepository.queryMovies(keyword, tag, year, actor, award, rating, pageable);
         JSONArray data = new JSONArray();
-        java.util.List<Long> ids = page.getContent().stream().map(FilmPO::getId).collect(Collectors.toList());
-        java.util.Map<Long, Double> avgMap = new java.util.HashMap<>();
+        List<Long> ids = new ArrayList<>();
+        for (FilmPO item : page.getContent()) {
+            ids.add(item.getId());
+        }
+        Map<Long, Double> avgMap = new HashMap<>();
         if (!ids.isEmpty()) {
-            for (var rs : ratingStatRepository.findByTargetTypeAndTargetIdIn("FILM", ids)) {
+            List<RatingStatPO> stats = ratingStatRepository.findByTargetTypeAndTargetIdIn("FILM", ids);
+            for (RatingStatPO rs : stats) {
                 avgMap.put(rs.getTargetId(), rs.getRatingAvg());
             }
         }
@@ -113,20 +123,18 @@ public class MovieService {
         film.setViews(film.getViews() + 1);
         filmRepository.save(film);
         RatingService.RatingSummary sum = ratingService.summary("FILM", film.getId());
-        JSONArray directorArr = new JSONArray();
+        JSONObject director = null;
         if (film.getDirector() != null) {
-            directorArr.add(
-                    H.build()
+            director = H.build()
                             .put("id", film.getDirector().getId())
                             .put("name", film.getDirector().getName())
                             .put("avatar", film.getDirector().getAvatar())
                             .put("description", "Director")
-                            .toJson()
-            );
+                            .toJson();
         }
-        java.util.List<com.example.web.filmforum.Model.Film.FilmActor> faList = filmActorRepository.findByFilm_Id(film.getId());
+        List<FilmActor> faList = filmActorRepository.findByFilm_Id(film.getId());
         JSONArray actors = new JSONArray();
-        for (com.example.web.filmforum.Model.Film.FilmActor fa : faList) {
+        for (FilmActor fa : faList) {
             if (fa.getActor() == null) continue;
             actors.add(
                     H.build()
@@ -137,9 +145,9 @@ public class MovieService {
                             .toJson()
             );
         }
-        java.util.List<com.example.web.filmforum.Model.Award.AwardRecordPO> awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(film.getId(), "FILM");
+        List<AwardRecordPO> awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(film.getId(), "FILM");
         JSONArray awards = new JSONArray();
-        for (com.example.web.filmforum.Model.Award.AwardRecordPO ar : awardRecords) {
+        for (AwardRecordPO ar : awardRecords) {
             awards.add(
                     H.build()
                             .put("id", ar.getId())
@@ -166,7 +174,7 @@ public class MovieService {
                         .put("language", film.getLanguage())
                         .put("trailer", film.getTrailer())
                         .put("photos", film.getPhotos())
-                        .put("director", directorArr)
+                        .put("director", director)
                         .put("actors", actors)
                         .put("awards", awards)
                         .put("views", film.getViews())
@@ -284,18 +292,36 @@ public class MovieService {
         if (body.containsKey("trailer")) film.setTrailer(body.getString("trailer"));
         if (body.containsKey("photos")) {
             JSONArray arr = body.getJSONArray("photos");
-            film.setPhotos(arr == null ? new ArrayList<>() : arr.stream().map(Object::toString).collect(Collectors.toList()));
+            List<String> photos = new ArrayList<>();
+            if (arr != null && !arr.isEmpty()) {
+                for (int i = 0; i < arr.size(); i++) {
+                    Object o = arr.get(i);
+                    photos.add(o == null ? null : o.toString());
+                }
+            }
+            film.setPhotos(photos);
         }
         if (body.containsKey("tags")) {
             JSONArray arr = body.getJSONArray("tags");
-            film.setTags(arr == null ? new ArrayList<>() : arr.stream().map(Object::toString).collect(Collectors.toList()));
+            List<String> tags = new ArrayList<>();
+            if (arr != null && !arr.isEmpty()) {
+                for (int i = 0; i < arr.size(); i++) {
+                    Object o = arr.get(i);
+                    tags.add(o == null ? null : o.toString());
+                }
+            }
+            film.setTags(tags);
         }
         if (body.containsKey("views")) film.setViews(body.getInteger("views") == null ? 0 : body.getInteger("views"));
 
         // director
-        if (body.containsKey("director_id")) {
-            Long dirId = body.getLong("director_id");
-            if (dirId == null) film.setDirector(null); else actorRepository.findById(dirId).ifPresent(film::setDirector);
+        if (body.containsKey("director")) {
+            Long dirId = body.getLong("director");
+            if (dirId == null) {
+                film.setDirector(null);
+            } else {
+                actorRepository.findById(dirId).ifPresent(film::setDirector);
+            }
         }
 
         FilmPO saved = filmRepository.save(film);
@@ -309,24 +335,20 @@ public class MovieService {
         // actors: [{id, description, role}]
         if (body.containsKey("actors")) {
             JSONArray actors = body.getJSONArray("actors");
-            if (actors != null) {
-                for (int i = 0; i < actors.size(); i++) {
-                    JSONObject a = actors.getJSONObject(i);
-                    if (a == null) continue;
-                    Long aid = a.getLong("id");
-                    if (aid == null) continue;
-                    actorRepository.findById(aid).ifPresent(actor -> {
-                        FilmActor fa = new FilmActor();
-                        fa.setFilm(saved);
-                        fa.setActor(actor);
-                        fa.setDescription(a.getString("description"));
-                        fa.setRole(a.getString("role"));
-                        filmActorRepository.save(fa);
-                    });
-                }
+            for (JSONObject a : actors.toArray(JSONObject.class)) {
+                if (a == null) continue;
+                Long aid = a.getLong("id");
+                if (aid == null) continue;
+                actorRepository.findById(aid).ifPresent(actor -> {
+                    FilmActor fa = new FilmActor();
+                    fa.setFilm(saved);
+                    fa.setActor(actor);
+                    fa.setDescription(a.getString("description"));
+                    fa.setRole(a.getString("role"));
+                    filmActorRepository.save(fa);
+                });
             }
         }
-
         return DataResponse.success(H.build().put("id", saved.getId()).put("updated", isUpdate).toJson());
     }
 }

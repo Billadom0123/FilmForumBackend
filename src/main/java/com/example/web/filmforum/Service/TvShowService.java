@@ -23,7 +23,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
+import com.example.web.filmforum.Model.Common.RatingStatPO;
 
 @Service
 public class TvShowService {
@@ -61,10 +63,14 @@ public class TvShowService {
     public DataResponse list(String tag, Integer year, Double rating, String actor, String award, Pageable pageable) {
         Page<TvShowPO> page = tvShowRepository.queryShows(null, tag, year, actor, award, rating, pageable);
         JSONArray data = new JSONArray();
-        java.util.List<Long> ids = page.getContent().stream().map(TvShowPO::getId).collect(Collectors.toList());
-        java.util.Map<Long, Double> avgMap = new java.util.HashMap<>();
+        List<Long> ids = new ArrayList<>();
+        for (TvShowPO item : page.getContent()) {
+            ids.add(item.getId());
+        }
+        Map<Long, Double> avgMap = new HashMap<>();
         if (!ids.isEmpty()) {
-            for (var rs : ratingStatRepository.findByTargetTypeAndTargetIdIn("TVSHOW", ids)) {
+            List<RatingStatPO> stats = ratingStatRepository.findByTargetTypeAndTargetIdIn("TVSHOW", ids);
+            for (RatingStatPO rs : stats) {
                 avgMap.put(rs.getTargetId(), rs.getRatingAvg());
             }
         }
@@ -90,20 +96,18 @@ public class TvShowService {
         show.setViews(show.getViews() + 1);
         tvShowRepository.save(show);
         RatingService.RatingSummary sum = ratingService.summary("TVSHOW", show.getId());
-        JSONArray directorArr = new JSONArray();
+        JSONObject directorArr = null;
         if (show.getDirector() != null) {
-            directorArr.add(
-                    H.build()
-                            .put("id", show.getDirector().getId())
-                            .put("name", show.getDirector().getName())
-                            .put("avatar", show.getDirector().getAvatar())
-                            .put("description", "Director")
-                            .toJson()
-            );
+            directorArr = H.build()
+                    .put("id", show.getDirector().getId())
+                    .put("name", show.getDirector().getName())
+                    .put("avatar", show.getDirector().getAvatar())
+                    .put("description", "Director")
+                    .toJson();
         }
-        java.util.List<com.example.web.filmforum.Model.TvShow.TvShowActor> rels = tvShowActorRepository.findByTvShow_Id(show.getId());
+        List<TvShowActor> rels = tvShowActorRepository.findByTvShow_Id(show.getId());
         JSONArray actors = new JSONArray();
-        for (com.example.web.filmforum.Model.TvShow.TvShowActor ta : rels) {
+        for (TvShowActor ta : rels) {
             if (ta.getActor() == null) continue;
             actors.add(
                     H.build()
@@ -114,9 +118,9 @@ public class TvShowService {
                             .toJson()
             );
         }
-        java.util.List<com.example.web.filmforum.Model.TvShow.TvShowSeason> seasonsList = tvShowSeasonRepository.findByTvShow_IdOrderByNumberAsc(show.getId());
+        List<TvShowSeason> seasonsList = tvShowSeasonRepository.findByTvShow_IdOrderByNumberAsc(show.getId());
         JSONArray seasons = new JSONArray();
-        for (com.example.web.filmforum.Model.TvShow.TvShowSeason s : seasonsList) {
+        for (TvShowSeason s : seasonsList) {
             seasons.add(
                     H.build()
                             .put("id", s.getId())
@@ -127,9 +131,9 @@ public class TvShowService {
                             .toJson()
             );
         }
-        java.util.List<com.example.web.filmforum.Model.Award.AwardRecordPO> awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(show.getId(), "TVSHOW");
+        List<AwardRecordPO> awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(show.getId(), "TVSHOW");
         JSONArray awards = new JSONArray();
-        for (com.example.web.filmforum.Model.Award.AwardRecordPO ar : awardRecords) {
+        for (AwardRecordPO ar : awardRecords) {
             awards.add(
                     H.build()
                             .put("id", ar.getId())
@@ -169,10 +173,14 @@ public class TvShowService {
     public DataResponse search(String keyword, String tag, Integer year, String actor, String award, Double rating, Pageable pageable) {
         Page<TvShowPO> page = tvShowRepository.queryShows(keyword, tag, year, actor, award, rating, pageable);
         JSONArray data = new JSONArray();
-        java.util.List<Long> ids = page.getContent().stream().map(TvShowPO::getId).collect(Collectors.toList());
-        java.util.Map<Long, Double> avgMap = new java.util.HashMap<>();
+        List<Long> ids = new ArrayList<>();
+        for (TvShowPO item : page.getContent()) {
+            ids.add(item.getId());
+        }
+        Map<Long, Double> avgMap = new HashMap<>();
         if (!ids.isEmpty()) {
-            for (var rs : ratingStatRepository.findByTargetTypeAndTargetIdIn("TVSHOW", ids)) {
+            List<RatingStatPO> stats = ratingStatRepository.findByTargetTypeAndTargetIdIn("TVSHOW", ids);
+            for (RatingStatPO rs : stats) {
                 avgMap.put(rs.getTargetId(), rs.getRatingAvg());
             }
         }
@@ -303,16 +311,30 @@ public class TvShowService {
         if (body.containsKey("trailer")) show.setTrailer(body.getString("trailer"));
         if (body.containsKey("photos")) {
             JSONArray arr = body.getJSONArray("photos");
-            show.setPhotos(arr == null ? new ArrayList<>() : arr.stream().map(Object::toString).collect(Collectors.toList()));
+            List<String> photos = new ArrayList<>();
+            if (arr != null && !arr.isEmpty()) {
+                for (int i = 0; i < arr.size(); i++) {
+                    Object o = arr.get(i);
+                    photos.add(o == null ? null : o.toString());
+                }
+            }
+            show.setPhotos(photos);
         }
         if (body.containsKey("tags")) {
             JSONArray arr = body.getJSONArray("tags");
-            show.setTags(arr == null ? new ArrayList<>() : arr.stream().map(Object::toString).collect(Collectors.toList()));
+            List<String> tags = new ArrayList<>();
+            if (arr != null && !arr.isEmpty()) {
+                for (int i = 0; i < arr.size(); i++) {
+                    Object o = arr.get(i);
+                    tags.add(o == null ? null : o.toString());
+                }
+            }
+            show.setTags(tags);
         }
         if (body.containsKey("views")) show.setViews(body.getInteger("views") == null ? 0 : body.getInteger("views"));
 
-        if (body.containsKey("director_id")) {
-            Long dirId = body.getLong("director_id");
+        if (body.containsKey("director")) {
+            Long dirId = body.getLong("director");
             if (dirId == null) show.setDirector(null); else actorRepository.findById(dirId).ifPresent(show::setDirector);
         }
 
@@ -320,12 +342,12 @@ public class TvShowService {
 
         // 更新演员关联（仅当请求包含 actors）
         if (isUpdate && body.containsKey("actors")) {
-            var olds = tvShowActorRepository.findByTvShow_Id(saved.getId());
+            List<TvShowActor> olds = tvShowActorRepository.findByTvShow_Id(saved.getId());
             if (olds != null && !olds.isEmpty()) tvShowActorRepository.deleteAll(olds);
         }
         if (body.containsKey("actors")) {
             JSONArray arr = body.getJSONArray("actors");
-            if (arr != null) {
+            if (arr != null && !arr.isEmpty()) {
                 for (int i = 0; i < arr.size(); i++) {
                     JSONObject a = arr.getJSONObject(i);
                     if (a == null) continue;
@@ -345,12 +367,12 @@ public class TvShowService {
 
         // 更新季信息（仅当请求包含 seasons）
         if (isUpdate && body.containsKey("seasons")) {
-            var olds = tvShowSeasonRepository.findByTvShow_IdOrderByNumberAsc(saved.getId());
+            List<TvShowSeason> olds = tvShowSeasonRepository.findByTvShow_IdOrderByNumberAsc(saved.getId());
             if (olds != null && !olds.isEmpty()) tvShowSeasonRepository.deleteAll(olds);
         }
         if (body.containsKey("seasons")) {
             JSONArray arr = body.getJSONArray("seasons");
-            if (arr != null) {
+            if (arr != null && !arr.isEmpty()) {
                 for (int i = 0; i < arr.size(); i++) {
                     JSONObject s = arr.getJSONObject(i);
                     if (s == null) continue;

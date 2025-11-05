@@ -23,7 +23,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
+import com.example.web.filmforum.Model.Common.RatingStatPO;
 
 @Service
 public class VarietyService {
@@ -61,10 +63,14 @@ public class VarietyService {
     public DataResponse list(String tag, Integer year, Double rating, String actor, String award, Pageable pageable) {
         Page<VarietyPO> page = varietyRepository.queryVarieties(null, tag, year, actor, award, rating, pageable);
         JSONArray data = new JSONArray();
-        java.util.List<Long> ids = page.getContent().stream().map(VarietyPO::getId).collect(Collectors.toList());
-        java.util.Map<Long, Double> avgMap = new java.util.HashMap<>();
+        List<Long> ids = new ArrayList<>();
+        for (VarietyPO item : page.getContent()) {
+            ids.add(item.getId());
+        }
+        Map<Long, Double> avgMap = new HashMap<>();
         if (!ids.isEmpty()) {
-            for (var rs : ratingStatRepository.findByTargetTypeAndTargetIdIn("VARIETY", ids)) {
+            List<RatingStatPO> stats = ratingStatRepository.findByTargetTypeAndTargetIdIn("VARIETY", ids);
+            for (RatingStatPO rs : stats) {
                 avgMap.put(rs.getTargetId(), rs.getRatingAvg());
             }
         }
@@ -101,9 +107,9 @@ public class VarietyService {
                             .toJson()
             );
         }
-        java.util.List<com.example.web.filmforum.Model.Variety.VarietyGuest> rels = varietyGuestRepository.findByVariety_Id(v.getId());
+        List<VarietyGuest> rels = varietyGuestRepository.findByVariety_Id(v.getId());
         JSONArray guests = new JSONArray();
-        for (com.example.web.filmforum.Model.Variety.VarietyGuest g : rels) {
+        for (VarietyGuest g : rels) {
             if (g.getActor() == null) continue;
             guests.add(
                     H.build()
@@ -114,9 +120,9 @@ public class VarietyService {
                             .toJson()
             );
         }
-        java.util.List<com.example.web.filmforum.Model.Variety.VarietySeason> seasonsList = varietySeasonRepository.findByVariety_IdOrderByNumberAsc(v.getId());
+        List<VarietySeason> seasonsList = varietySeasonRepository.findByVariety_IdOrderByNumberAsc(v.getId());
         JSONArray seasons = new JSONArray();
-        for (com.example.web.filmforum.Model.Variety.VarietySeason s : seasonsList) {
+        for (VarietySeason s : seasonsList) {
             seasons.add(
                     H.build()
                             .put("id", s.getId())
@@ -127,9 +133,9 @@ public class VarietyService {
                             .toJson()
             );
         }
-        java.util.List<com.example.web.filmforum.Model.Award.AwardRecordPO> awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(v.getId(), "VARIETY");
+        List<AwardRecordPO> awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(v.getId(), "VARIETY");
         JSONArray awards = new JSONArray();
-        for (com.example.web.filmforum.Model.Award.AwardRecordPO ar : awardRecords) {
+        for (AwardRecordPO ar : awardRecords) {
             awards.add(
                     H.build()
                             .put("id", ar.getId())
@@ -169,10 +175,14 @@ public class VarietyService {
     public DataResponse search(String keyword, String tag, Integer year, String actor, String award, Double rating, Pageable pageable) {
         Page<VarietyPO> page = varietyRepository.queryVarieties(keyword, tag, year, actor, award, rating, pageable);
         JSONArray data = new JSONArray();
-        java.util.List<Long> ids = page.getContent().stream().map(VarietyPO::getId).collect(Collectors.toList());
-        java.util.Map<Long, Double> avgMap = new java.util.HashMap<>();
+        List<Long> ids = new ArrayList<>();
+        for (VarietyPO item : page.getContent()) {
+            ids.add(item.getId());
+        }
+        Map<Long, Double> avgMap = new HashMap<>();
         if (!ids.isEmpty()) {
-            for (var rs : ratingStatRepository.findByTargetTypeAndTargetIdIn("VARIETY", ids)) {
+            List<RatingStatPO> stats = ratingStatRepository.findByTargetTypeAndTargetIdIn("VARIETY", ids);
+            for (RatingStatPO rs : stats) {
                 avgMap.put(rs.getTargetId(), rs.getRatingAvg());
             }
         }
@@ -298,17 +308,31 @@ public class VarietyService {
         if (body.containsKey("trailer")) v.setTrailer(body.getString("trailer"));
         if (body.containsKey("photos")) {
             JSONArray arr = body.getJSONArray("photos");
-            v.setPhotos(arr == null ? new ArrayList<>() : arr.stream().map(Object::toString).collect(Collectors.toList()));
+            List<String> photos = new ArrayList<>();
+            if (arr != null && !arr.isEmpty()) {
+                for (int i = 0; i < arr.size(); i++) {
+                    Object o = arr.get(i);
+                    photos.add(o == null ? null : o.toString());
+                }
+            }
+            v.setPhotos(photos);
         }
         if (body.containsKey("tags")) {
             JSONArray arr = body.getJSONArray("tags");
-            v.setTags(arr == null ? new ArrayList<>() : arr.stream().map(Object::toString).collect(Collectors.toList()));
+            List<String> tags = new ArrayList<>();
+            if (arr != null && !arr.isEmpty()) {
+                for (int i = 0; i < arr.size(); i++) {
+                    Object o = arr.get(i);
+                    tags.add(o == null ? null : o.toString());
+                }
+            }
+            v.setTags(tags);
         }
         if (body.containsKey("views")) v.setViews(body.getInteger("views") == null ? 0 : body.getInteger("views"));
 
         // host
-        if (body.containsKey("host_id")) {
-            Long hid = body.getLong("host_id");
+        if (body.containsKey("host")) {
+            Long hid = body.getLong("host");
             if (hid == null) v.setHost(null); else actorRepository.findById(hid).ifPresent(v::setHost);
         }
 
@@ -316,12 +340,12 @@ public class VarietyService {
 
         // guests
         if (isUpdate && body.containsKey("guests")) {
-            var olds = varietyGuestRepository.findByVariety_Id(saved.getId());
+            List<VarietyGuest> olds = varietyGuestRepository.findByVariety_Id(saved.getId());
             if (olds != null && !olds.isEmpty()) varietyGuestRepository.deleteAll(olds);
         }
         if (body.containsKey("guests")) {
             JSONArray arr = body.getJSONArray("guests");
-            if (arr != null) {
+            if (arr != null && !arr.isEmpty()) {
                 for (int i = 0; i < arr.size(); i++) {
                     JSONObject g = arr.getJSONObject(i);
                     if (g == null) continue;
@@ -340,12 +364,12 @@ public class VarietyService {
 
         // seasons
         if (isUpdate && body.containsKey("seasons")) {
-            var olds = varietySeasonRepository.findByVariety_IdOrderByNumberAsc(saved.getId());
+            List<VarietySeason> olds = varietySeasonRepository.findByVariety_IdOrderByNumberAsc(saved.getId());
             if (olds != null && !olds.isEmpty()) varietySeasonRepository.deleteAll(olds);
         }
         if (body.containsKey("seasons")) {
             JSONArray arr = body.getJSONArray("seasons");
-            if (arr != null) {
+            if (arr != null && !arr.isEmpty()) {
                 for (int i = 0; i < arr.size(); i++) {
                     JSONObject s = arr.getJSONObject(i);
                     if (s == null) continue;

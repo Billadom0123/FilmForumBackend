@@ -51,6 +51,7 @@ public class SecurityConfiguration {
         }));
         http.authorizeHttpRequests(authorizeRequests -> authorizeRequests
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // 静态资源放行
+                .requestMatchers("/api/hello").permitAll()
                 .requestMatchers("/api/user/**").permitAll()  // user部分接口允许通行
                 .requestMatchers("/api/oauth2/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll()  // test类接口允许通行（允许任何人测试）
