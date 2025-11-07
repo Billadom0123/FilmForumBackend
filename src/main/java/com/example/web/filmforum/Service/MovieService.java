@@ -44,6 +44,8 @@ public class MovieService {
     @Autowired
     private RatingStatRepository ratingStatRepository;
     @Autowired
+    private RatingRepository ratingRepository; // 新增注入
+    @Autowired
     private UserRepository userRepository;
     @Autowired
     private ActorRepository actorRepository;
@@ -350,5 +352,26 @@ public class MovieService {
             }
         }
         return DataResponse.success(H.build().put("id", saved.getId()).put("updated", isUpdate).toJson());
+    }
+
+    // 新增：删除电影（仅管理员在控制器层可访问）
+    public DataResponse delete(Long filmId) {
+        FilmPO film = filmRepository.findById(filmId).orElse(null);
+        if (film == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        // 清理演员关联
+        List<FilmActor> rels = filmActorRepository.findByFilm_Id(filmId);
+        if (rels != null && !rels.isEmpty()) filmActorRepository.deleteAll(rels);
+        // 清理点赞/收藏/评分/评分统计
+        likeRepository.deleteByTargetTypeAndTargetId("FILM", filmId);
+        favoriteRepository.deleteByTargetTypeAndTargetId("FILM", filmId);
+        ratingRepository.deleteByTargetTypeAndTargetId("FILM", filmId);
+        RatingStatPO stat = ratingStatRepository.findByTargetTypeAndTargetId("FILM", filmId);
+        if (stat != null) ratingStatRepository.delete(stat);
+        // 清理奖项记录
+        List<AwardRecordPO> awards = awardRecordRepository.findByTargetIdAndAward_TargetType(filmId, "FILM");
+        if (awards != null && !awards.isEmpty()) awardRecordRepository.deleteAll(awards);
+        // 删除电影本体
+        filmRepository.delete(film);
+        return DataResponse.ok();
     }
 }

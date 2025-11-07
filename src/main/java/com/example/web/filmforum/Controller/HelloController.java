@@ -10,6 +10,6 @@ public class HelloController {
 
     @GetMapping("/hello")
     public String hello() {
-        return "version: 11.2 17:17:00";
+        return "version: 11.5 23:06:00";
     }
 }

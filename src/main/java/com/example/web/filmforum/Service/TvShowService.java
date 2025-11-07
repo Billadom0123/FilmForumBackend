@@ -45,6 +45,8 @@ public class TvShowService {
     @Autowired
     private RatingStatRepository ratingStatRepository;
     @Autowired
+    private RatingRepository ratingRepository; // 新增注入
+    @Autowired
     private AwardRecordRepository awardRecordRepository;
     @Autowired
     private UserRepository userRepository;
@@ -388,5 +390,29 @@ public class TvShowService {
         }
 
         return DataResponse.success(H.build().put("id", saved.getId()).put("updated", isUpdate).toJson());
+    }
+
+    // 新增：删除电视剧（仅管理员在控制器层可访问）
+    public DataResponse delete(Long showId) {
+        TvShowPO show = tvShowRepository.findById(showId).orElse(null);
+        if (show == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        // 清理演员关联
+        List<TvShowActor> actorRels = tvShowActorRepository.findByTvShow_Id(showId);
+        if (actorRels != null && !actorRels.isEmpty()) tvShowActorRepository.deleteAll(actorRels);
+        // 清理季信息
+        List<TvShowSeason> seasons = tvShowSeasonRepository.findByTvShow_IdOrderByNumberAsc(showId);
+        if (seasons != null && !seasons.isEmpty()) tvShowSeasonRepository.deleteAll(seasons);
+        // 清理点赞/收藏/评分/评分统计
+        likeRepository.deleteByTargetTypeAndTargetId("TVSHOW", showId);
+        favoriteRepository.deleteByTargetTypeAndTargetId("TVSHOW", showId);
+        ratingRepository.deleteByTargetTypeAndTargetId("TVSHOW", showId);
+        RatingStatPO stat = ratingStatRepository.findByTargetTypeAndTargetId("TVSHOW", showId);
+        if (stat != null) ratingStatRepository.delete(stat);
+        // 清理奖项记录
+        List<AwardRecordPO> awards = awardRecordRepository.findByTargetIdAndAward_TargetType(showId, "TVSHOW");
+        if (awards != null && !awards.isEmpty()) awardRecordRepository.deleteAll(awards);
+        // 删除主体
+        tvShowRepository.delete(show);
+        return DataResponse.ok();
     }
 }

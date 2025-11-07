@@ -1,7 +1,9 @@
 package com.example.web.filmforum.Repository;
 
 import com.example.web.filmforum.Model.Common.RatingPO;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,4 +17,9 @@ public interface RatingRepository extends JpaRepository<RatingPO, Long> {
 
     @Query("select coalesce(avg(r.score),0) from com.example.web.filmforum.Model.Common.RatingPO r where r.targetType = :t and r.targetId = :id")
     Double avgByTarget(@Param("t") String targetType, @Param("id") Long targetId);
+
+    // 新增：按目标删除全部评分
+    @Modifying
+    @Transactional
+    void deleteByTargetTypeAndTargetId(String targetType, Long targetId);
 }

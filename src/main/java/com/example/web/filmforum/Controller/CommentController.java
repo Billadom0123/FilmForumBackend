@@ -14,19 +14,19 @@ public class CommentController {
     @Autowired
     private CommentService commentService;
 
-    @Secured("ROLE_USER")
-    @PostMapping
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
+    @PostMapping("/create")
     public DataResponse create(@RequestBody JSONObject body) {
         return commentService.create(body);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/edit")
     public DataResponse edit(@PathVariable("id") Long id, @RequestBody JSONObject body) {
         return commentService.edit(id, body);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/delete")
     public DataResponse delete(@PathVariable("id") Long id) {
         return commentService.delete(id);

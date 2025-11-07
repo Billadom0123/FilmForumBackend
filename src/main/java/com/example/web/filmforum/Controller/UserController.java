@@ -34,21 +34,21 @@ public class UserController {
     }
 
     // 关注用户（仅POST）
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/follow")
     public DataResponse follow(@PathVariable("id") Long targetUserId) {
         return followService.followUser(targetUserId);
     }
 
     // 取消关注（仅POST，满足只用GET/POST的约束）
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/unfollow")
     public DataResponse unfollow(@PathVariable("id") Long targetUserId) {
         return followService.unfollowUser(targetUserId);
     }
 
     // 新增：更新当前登录用户头像（仅POST）
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/avatar")
     public DataResponse updateAvatar(@RequestBody JSONObject payload) {
         return userService.updateAvatar(payload);

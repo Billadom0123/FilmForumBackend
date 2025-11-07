@@ -45,21 +45,56 @@ public class VarietyController {
         return varietyService.search(keyword, tag, year, actor, award, rating, pageRequest);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/like")
     public DataResponse like(@PathVariable("id") Long id) {
         return varietyService.like(id);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/unlike")
     public DataResponse unlike(@PathVariable("id") Long id) {
         return varietyService.unlike(id);
+    }
+
+    // 新增：评分提交（含短评）
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
+    @PostMapping("/{id}/rate")
+    public DataResponse rate(@PathVariable("id") Long id, @RequestBody JSONObject body) {
+        Integer score = body.getInteger("score");
+        String comment = body.getString("comment");
+        return varietyService.rate(id, score, comment);
+    }
+
+    // 新增：获取评分和海报
+    @GetMapping("/{id}/rating-poster")
+    public DataResponse ratingPoster(@PathVariable("id") Long id) {
+        return varietyService.ratingPoster(id);
+    }
+
+    // 新增：收藏/取消收藏
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
+    @PostMapping("/{id}/favorite")
+    public DataResponse favorite(@PathVariable("id") Long id) {
+        return varietyService.favorite(id);
+    }
+
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
+    @PostMapping("/{id}/unfavorite")
+    public DataResponse unfavorite(@PathVariable("id") Long id) {
+        return varietyService.unfavorite(id);
     }
 
     @Secured("ROLE_ADMIN")
     @PostMapping("/add")
     public DataResponse addVariety(@RequestBody JSONObject body) {
         return varietyService.add(body);
+    }
+
+    // 新增：删除综艺
+    @Secured("ROLE_ADMIN")
+    @PostMapping("/{id}/delete")
+    public DataResponse delete(@PathVariable("id") Long id) {
+        return varietyService.delete(id);
     }
 }

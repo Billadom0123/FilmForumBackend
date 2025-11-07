@@ -45,20 +45,20 @@ public class TvShowController {
         return tvShowService.search(keyword, tag, year, actor, award, rating, pageRequest);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/like")
     public DataResponse like(@PathVariable("id") Long id) {
         return tvShowService.like(id);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/unlike")
     public DataResponse unlike(@PathVariable("id") Long id) {
         return tvShowService.unlike(id);
     }
 
     // 新增：评分提交（含短评）
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/rate")
     public DataResponse rate(@PathVariable("id") Long id, @RequestBody JSONObject body) {
         Integer score = body.getInteger("score");
@@ -73,13 +73,13 @@ public class TvShowController {
     }
 
     // 新增：收藏/取消收藏
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/favorite")
     public DataResponse favorite(@PathVariable("id") Long id) {
         return tvShowService.favorite(id);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/unfavorite")
     public DataResponse unfavorite(@PathVariable("id") Long id) {
         return tvShowService.unfavorite(id);
@@ -89,5 +89,12 @@ public class TvShowController {
     @PostMapping("/add")
     public DataResponse addTvShow(@RequestBody JSONObject body) {
         return tvShowService.add(body);
+    }
+
+    // 新增：删除电视剧
+    @Secured("ROLE_ADMIN")
+    @PostMapping("/{id}/delete")
+    public DataResponse delete(@PathVariable("id") Long id) {
+        return tvShowService.delete(id);
     }
 }

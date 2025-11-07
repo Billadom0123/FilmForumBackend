@@ -9,5 +9,6 @@ public interface LikeRepository extends JpaRepository<LikePO, Long> {
     boolean existsByUser_IdAndTargetTypeAndTargetId(Long userId, String targetType, Long targetId);
     LikePO findByUser_IdAndTargetTypeAndTargetId(Long userId, String targetType, Long targetId);
     long countByTargetTypeAndTargetId(String targetType, Long targetId);
+    // 新增：按目标删除全部点赞
+    void deleteByTargetTypeAndTargetId(String targetType, Long targetId);
 }
-

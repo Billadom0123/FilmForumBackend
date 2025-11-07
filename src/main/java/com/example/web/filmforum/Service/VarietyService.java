@@ -45,6 +45,8 @@ public class VarietyService {
     @Autowired
     private RatingStatRepository ratingStatRepository;
     @Autowired
+    private RatingRepository ratingRepository; // 新增注入
+    @Autowired
     private AwardRecordRepository awardRecordRepository;
     @Autowired
     private UserRepository userRepository;
@@ -385,5 +387,29 @@ public class VarietyService {
         }
 
         return DataResponse.success(H.build().put("id", saved.getId()).put("updated", isUpdate).toJson());
+    }
+
+    // 新增：删除综艺（仅管理员在控制器层可访问）
+    public DataResponse delete(Long varietyId) {
+        VarietyPO v = varietyRepository.findById(varietyId).orElse(null);
+        if (v == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        // 清理嘉宾关联
+        List<VarietyGuest> guests = varietyGuestRepository.findByVariety_Id(varietyId);
+        if (guests != null && !guests.isEmpty()) varietyGuestRepository.deleteAll(guests);
+        // 清理季信息
+        List<VarietySeason> seasons = varietySeasonRepository.findByVariety_IdOrderByNumberAsc(varietyId);
+        if (seasons != null && !seasons.isEmpty()) varietySeasonRepository.deleteAll(seasons);
+        // 清理点赞/收藏/评分/评分统计
+        likeRepository.deleteByTargetTypeAndTargetId("VARIETY", varietyId);
+        favoriteRepository.deleteByTargetTypeAndTargetId("VARIETY", varietyId);
+        ratingRepository.deleteByTargetTypeAndTargetId("VARIETY", varietyId);
+        RatingStatPO stat = ratingStatRepository.findByTargetTypeAndTargetId("VARIETY", varietyId);
+        if (stat != null) ratingStatRepository.delete(stat);
+        // 清理奖项记录
+        List<AwardRecordPO> awards = awardRecordRepository.findByTargetIdAndAward_TargetType(varietyId, "VARIETY");
+        if (awards != null && !awards.isEmpty()) awardRecordRepository.deleteAll(awards);
+        // 删除主体
+        varietyRepository.delete(v);
+        return DataResponse.ok();
     }
 }

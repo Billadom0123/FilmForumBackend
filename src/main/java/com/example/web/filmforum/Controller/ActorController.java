@@ -5,6 +5,7 @@ import com.example.web.filmforum.Payload.DataResponse;
 import com.example.web.filmforum.Service.ActorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,6 +26,7 @@ public class ActorController {
         return actorService.searchActors(keyword, nationality, gender, pageRequest);
     }
 
+    @Secured("ROLE_ADMIN")
     @PostMapping("/save")
     public DataResponse saveActor(@RequestBody JSONObject actorData) {
         return actorService.save(actorData);

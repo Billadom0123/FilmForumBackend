@@ -90,4 +90,11 @@ public class MovieController {
     public DataResponse unfavorite(@PathVariable("id") Long id) {
         return movieService.unfavorite(id);
     }
+
+    // 新增：删除电影
+    @Secured("ROLE_ADMIN")
+    @PostMapping("/{id}/delete")
+    public DataResponse delete(@PathVariable("id") Long id) {
+        return movieService.delete(id);
+    }
 }

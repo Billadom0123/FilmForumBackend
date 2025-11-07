@@ -41,31 +41,31 @@ public class PostController {
         return commentService.list(id, pageRequest);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/create")
     public DataResponse create(@RequestBody JSONObject body) {
         return postService.create(body);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/edit")
     public DataResponse edit(@PathVariable("id") Long id, @RequestBody JSONObject body) {
         return postService.edit(id, body);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/delete")
     public DataResponse delete(@PathVariable("id") Long id) {
         return postService.delete(id);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/like")
     public DataResponse like(@PathVariable("id") Long id) {
         return postService.like(id);
     }
 
-    @Secured("ROLE_USER")
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/{id}/unlike")
     public DataResponse unlike(@PathVariable("id") Long id) {
         return postService.unlike(id);
