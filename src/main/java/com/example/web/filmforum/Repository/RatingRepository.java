@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface RatingRepository extends JpaRepository<RatingPO, Long> {
@@ -22,4 +24,7 @@ public interface RatingRepository extends JpaRepository<RatingPO, Long> {
     @Modifying
     @Transactional
     void deleteByTargetTypeAndTargetId(String targetType, Long targetId);
+
+    // 新增：分页获取有短评的评分记录
+    Page<RatingPO> findByTargetTypeAndTargetIdAndCommentIsNotNull(String targetType, Long targetId, Pageable pageable);
 }

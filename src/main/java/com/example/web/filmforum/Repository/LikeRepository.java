@@ -3,6 +3,8 @@ package com.example.web.filmforum.Repository;
 import com.example.web.filmforum.Model.Common.LikePO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Modifying;
+import jakarta.transaction.Transactional;
 
 @Repository
 public interface LikeRepository extends JpaRepository<LikePO, Long> {
@@ -10,5 +12,7 @@ public interface LikeRepository extends JpaRepository<LikePO, Long> {
     LikePO findByUser_IdAndTargetTypeAndTargetId(Long userId, String targetType, Long targetId);
     long countByTargetTypeAndTargetId(String targetType, Long targetId);
     // 新增：按目标删除全部点赞
+    @Modifying
+    @Transactional
     void deleteByTargetTypeAndTargetId(String targetType, Long targetId);
 }

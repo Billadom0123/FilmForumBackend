@@ -12,6 +12,7 @@ import com.example.web.filmforum.Repository.CommentRepository;
 import com.example.web.filmforum.Repository.LikeRepository;
 import com.example.web.filmforum.Repository.PostRepository;
 import com.example.web.filmforum.Repository.UserRepository;
+import com.example.web.filmforum.Repository.FavoriteRepository;
 import com.example.web.filmforum.Util.H;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,8 @@ public class PostService {
     private LikeRepository likeRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private FavoriteRepository favoriteRepository;
 
     private UserPO currentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

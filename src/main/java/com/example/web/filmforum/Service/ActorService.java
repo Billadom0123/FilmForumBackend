@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.web.filmforum.Model.Film.FilmActor;
 import com.example.web.filmforum.Model.Award.AwardRecordPO;
@@ -147,6 +148,24 @@ public class ActorService {
             return DataResponse.ok();
         } catch (Exception e) {
             return DataResponse.failure(500, "保存演员失败: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public DataResponse delete(Long id) {
+        Actor actor = actorRepository.findById(id).orElse(null);
+        if (actor == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        try {
+            List<FilmActor> filmRelations = filmActorRepository.findByActor_Id(actor.getId());
+            if (!filmRelations.isEmpty()) filmActorRepository.deleteAll(filmRelations);
+            var tvShowRelations = tvShowActorRepository.findByActor_Id(actor.getId());
+            if (!tvShowRelations.isEmpty()) tvShowActorRepository.deleteAll(tvShowRelations);
+            var awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(actor.getId(), "ACTOR");
+            if (!awardRecords.isEmpty()) awardRecordRepository.deleteAll(awardRecords);
+            actorRepository.delete(actor);
+            return DataResponse.ok();
+        } catch (Exception e) {
+            return DataResponse.failure(500, "删除演员失败: " + e.getMessage());
         }
     }
 }

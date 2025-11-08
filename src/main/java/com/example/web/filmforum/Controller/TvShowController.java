@@ -15,7 +15,7 @@ public class TvShowController {
     @Autowired
     private TvShowService tvShowService;
 
-    @GetMapping
+    @GetMapping("/list")
     public DataResponse list(@RequestParam(defaultValue = "1") int page,
                              @RequestParam(defaultValue = "10") int size,
                              @RequestParam(required = false) String tag,
@@ -96,5 +96,13 @@ public class TvShowController {
     @PostMapping("/{id}/delete")
     public DataResponse delete(@PathVariable("id") Long id) {
         return tvShowService.delete(id);
+    }
+
+    @GetMapping("/{id}/reviews")
+    public DataResponse reviews(@PathVariable("id") Long id,
+                                @RequestParam(defaultValue = "1") int page,
+                                @RequestParam(defaultValue = "10") int size) {
+        PageRequest pr = PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1));
+        return tvShowService.reviews(id, pr);
     }
 }

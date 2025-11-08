@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -100,5 +101,17 @@ public class AwardService {
         return DataResponse.success(data);
     }
 
-
+    @Transactional
+    public DataResponse delete(Long id) {
+        AwardPO award = awardRepository.findById(id).orElse(null);
+        if (award == null) return DataResponse.failure(CommonErr.AWARD_NOT_FOUND);
+        try {
+            var records = awardRecordRepository.findByAward_Id(id);
+            if (!records.isEmpty()) awardRecordRepository.deleteAll(records);
+            awardRepository.delete(award);
+            return DataResponse.ok();
+        } catch (Exception e) {
+            return DataResponse.failure(500, "删除奖项失败: " + e.getMessage());
+        }
+    }
 }

@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface AwardRecordRepository extends JpaRepository<AwardRecordPO, Long> {
     List<AwardRecordPO> findByTargetIdAndAward_TargetType(Long targetId, String targetType);
+    List<AwardRecordPO> findByAward_Id(Long awardId);
 }

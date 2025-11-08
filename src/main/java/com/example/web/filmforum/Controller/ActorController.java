@@ -36,4 +36,10 @@ public class ActorController {
     public DataResponse detail(@PathVariable Long id) {
         return actorService.detail(id);
     }
+
+    @Secured("ROLE_ADMIN")
+    @PostMapping("/{id}/delete")
+    public DataResponse delete(@PathVariable Long id) {
+        return actorService.delete(id);
+    }
 }

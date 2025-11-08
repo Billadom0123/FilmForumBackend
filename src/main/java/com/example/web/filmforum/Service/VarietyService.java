@@ -149,6 +149,9 @@ public class VarietyService {
             );
         }
         long likes = likeRepository.countByTargetTypeAndTargetId("VARIETY", v.getId());
+        UserPO me = currentUser();
+        boolean isLiked = me != null && likeRepository.existsByUser_IdAndTargetTypeAndTargetId(me.getId(), "VARIETY", v.getId());
+        boolean isFavorited = me != null && favoriteRepository.existsByUser_IdAndTargetTypeAndTargetId(me.getId(), "VARIETY", v.getId());
         return DataResponse.success(
                 H.build()
                         .put("id", v.getId())
@@ -170,6 +173,8 @@ public class VarietyService {
                         .put("seasons", seasons)
                         .put("views", v.getViews())
                         .put("likes", likes)
+                        .put("isLiked", isLiked)
+                        .put("isFavorited", isFavorited)
                         .toJson()
         );
     }
@@ -411,5 +416,32 @@ public class VarietyService {
         // 删除主体
         varietyRepository.delete(v);
         return DataResponse.ok();
+    }
+
+    public DataResponse reviews(Long varietyId, Pageable pageable) {
+        VarietyPO v = varietyRepository.findById(varietyId).orElse(null);
+        if (v == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        var page = ratingRepository.findByTargetTypeAndTargetIdAndCommentIsNotNull("VARIETY", varietyId, pageable);
+        JSONArray data = new JSONArray();
+        for (var r : page.getContent()) {
+            UserPO u = r.getUser();
+            data.add(
+                    H.build()
+                            .put("id", r.getId())
+                            .put("score", r.getScore())
+                            .put("comment", r.getComment())
+                            .put("createTime", r.getCreateTime())
+                            .put("updateTime", r.getUpdateTime())
+                            .put("user", u == null ? null : H.build()
+                                    .put("id", u.getId())
+                                    .put("username", u.getUsername())
+                                    .put("nickname", u.getNickname())
+                                    .put("avatar", u.getAvatar())
+                                    .toJson())
+                            .toJson()
+            );
+        }
+        Pagination pag = new Pagination(page.getTotalElements(), pageable.getPageNumber() + 1, pageable.getPageSize(), page.hasNext());
+        return DataResponse.success(H.build().put("reviews", data).put("pagination", pag.toJSON()).toJson());
     }
 }

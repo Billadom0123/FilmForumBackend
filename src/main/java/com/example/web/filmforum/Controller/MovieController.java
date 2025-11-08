@@ -97,4 +97,12 @@ public class MovieController {
     public DataResponse delete(@PathVariable("id") Long id) {
         return movieService.delete(id);
     }
+
+    @GetMapping("/{id}/reviews")
+    public DataResponse reviews(@PathVariable("id") Long id,
+                                @RequestParam(defaultValue = "1") int page,
+                                @RequestParam(defaultValue = "10") int size) {
+        PageRequest pr = PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1));
+        return movieService.reviews(id, pr);
+    }
 }

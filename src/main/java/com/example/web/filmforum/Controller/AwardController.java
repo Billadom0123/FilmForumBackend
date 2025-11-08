@@ -36,4 +36,10 @@ public class AwardController {
     public DataResponse getById(@PathVariable Long id) {
         return awardService.getById(id);
     }
+
+    @Secured("ROLE_ADMIN")
+    @PostMapping("/{id}/delete")
+    public DataResponse delete(@PathVariable Long id) {
+        return awardService.delete(id);
+    }
 }
