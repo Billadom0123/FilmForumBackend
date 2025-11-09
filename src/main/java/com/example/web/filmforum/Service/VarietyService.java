@@ -89,7 +89,11 @@ public class VarietyService {
             data.add(obj);
         }
         Pagination pag = new Pagination(page.getTotalElements(), pageable.getPageNumber() + 1, pageable.getPageSize(), page.hasNext());
-        return DataResponse.success(H.build().put("varieties", data).put("pagination", pag.toJSON()).toJson());
+        return DataResponse.success(H.build()
+                .put("varieties", data)
+                .put("pagination", pag.toJSON())
+                .toJson()
+        );
     }
 
     public DataResponse detail(Long id) {
@@ -206,7 +210,11 @@ public class VarietyService {
             data.add(obj);
         }
         Pagination pag = new Pagination(page.getTotalElements(), pageable.getPageNumber() + 1, pageable.getPageSize(), page.hasNext());
-        return DataResponse.success(H.build().put("varieties", data).put("pagination", pag.toJSON()).toJson());
+        return DataResponse.success(H.build()
+                .put("varieties", data)
+                .put("pagination", pag.toJSON())
+                .toJson()
+        );
     }
 
     public DataResponse like(Long id) {
@@ -391,7 +399,11 @@ public class VarietyService {
             }
         }
 
-        return DataResponse.success(H.build().put("id", saved.getId()).put("updated", isUpdate).toJson());
+        return DataResponse.success(H.build()
+                .put("id", saved.getId())
+                .put("updated", isUpdate)
+                .toJson()
+        );
     }
 
     // 新增：删除综艺（仅管理员在控制器层可访问）
