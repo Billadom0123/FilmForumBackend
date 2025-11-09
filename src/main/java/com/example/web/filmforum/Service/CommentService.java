@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -115,13 +116,22 @@ public class CommentService {
         return DataResponse.ok();
     }
 
+    @Transactional
     public DataResponse delete(Long id) {
         UserPO me = currentUser();
         if (me == null) return DataResponse.failure(CommonErr.NO_AUTHENTICATION);
         CommentPO c = commentRepository.findById(id).orElse(null);
         if (c == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
         if (c.getAuthor() == null || !c.getAuthor().getId().equals(me.getId())) return DataResponse.failure(CommonErr.NO_AUTHORITY);
-        commentRepository.delete(c);
+        deleteRecursively(c);
         return DataResponse.ok();
+    }
+
+    private void deleteRecursively(CommentPO comment) {
+        List<CommentPO> children = commentRepository.findByParent_IdOrderByCreateTimeAsc(comment.getId());
+        for (CommentPO child : children) {
+            deleteRecursively(child);
+        }
+        commentRepository.delete(comment);
     }
 }

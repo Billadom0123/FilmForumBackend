@@ -20,4 +20,7 @@ public interface PostRepository extends JpaRepository<PostPO, Long> {
     Page<PostPO> search(@Param("category") String category,
                         @Param("keyword") String keyword,
                         Pageable pageable);
+
+    // 新增: 根据作者ID分页获取帖子列表
+    Page<PostPO> findByAuthor_IdOrderByCreateTimeDesc(Long authorId, Pageable pageable);
 }

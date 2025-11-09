@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -45,6 +46,15 @@ public class PostService {
         UserPO user = userRepository.findByUsername(name);
         if (user == null) user = userRepository.findByEmail(name);
         return user;
+    }
+
+    private boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return false;
+        for (GrantedAuthority ga : auth.getAuthorities()) {
+            if ("ROLE_ADMIN".equals(ga.getAuthority())) return true;
+        }
+        return false;
     }
 
     public DataResponse list(String category, String keyword, Pageable pageable) {
@@ -204,5 +214,22 @@ public class PostService {
         if (l == null) return DataResponse.failure(CommonErr.OPERATE_REPEAT);
         likeRepository.delete(l);
         return DataResponse.ok();
+    }
+
+    public DataResponse permission(Long id) {
+        PostPO p = postRepository.findById(id).orElse(null);
+        if (p == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        UserPO me = currentUser();
+        boolean canEdit = false;
+        boolean canDelete = false;
+        if (me != null) {
+            canEdit = p.getAuthor() != null && p.getAuthor().getId().equals(me.getId());
+            canDelete = canEdit || isAdmin();
+        }
+        return DataResponse.success(H.build()
+                .put("canEdit", canEdit)
+                .put("canDelete", canDelete)
+                .toJson()
+        );
     }
 }

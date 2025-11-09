@@ -41,6 +41,11 @@ public class PostController {
         return commentService.list(id, pageRequest);
     }
 
+    @GetMapping("/{id}/permission")
+    public DataResponse permission(@PathVariable("id") Long id) {
+        return postService.permission(id);
+    }
+
     @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @PostMapping("/create")
     public DataResponse create(@RequestBody JSONObject body) {
