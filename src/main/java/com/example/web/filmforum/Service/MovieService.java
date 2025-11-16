@@ -406,4 +406,34 @@ public class MovieService {
         Pagination pag = new Pagination(page.getTotalElements(), pageable.getPageNumber() + 1, pageable.getPageSize(), page.hasNext());
         return DataResponse.success(H.build().put("reviews", data).put("pagination", pag.toJSON()).toJson());
     }
+
+    // 新增：最热电影分页（按浏览量倒序）
+    public DataResponse hot(Pageable pageable) {
+        Page<FilmPO> page = filmRepository.findAllByOrderByViewsDesc(pageable);
+        JSONArray data = new JSONArray();
+        List<Long> ids = new ArrayList<>();
+        for (FilmPO item : page.getContent()) ids.add(item.getId());
+        Map<Long, Double> avgMap = new HashMap<>();
+        if (!ids.isEmpty()) {
+            List<RatingStatPO> stats = ratingStatRepository.findByTargetTypeAndTargetIdIn("FILM", ids);
+            for (RatingStatPO rs : stats) avgMap.put(rs.getTargetId(), rs.getRatingAvg());
+        }
+        for (FilmPO film : page.getContent()) {
+            Double avg = avgMap.getOrDefault(film.getId(), 0.0);
+            data.add(
+                    H.build()
+                            .put("id", film.getId())
+                            .put("title", film.getTitle())
+                            .put("year", film.getYear())
+                            .put("tags", film.getTags())
+                            .put("rating", avg)
+                            .put("poster", film.getPoster())
+                            .put("views", film.getViews())
+                            .put("likes", likeRepository.countByTargetTypeAndTargetId("FILM", film.getId()))
+                            .toJson()
+            );
+        }
+        Pagination pag = new Pagination(page.getTotalElements(), pageable.getPageNumber() + 1, pageable.getPageSize(), page.hasNext());
+        return DataResponse.success(H.build().put("movies", data).put("pagination", pag.toJSON()).toJson());
+    }
 }

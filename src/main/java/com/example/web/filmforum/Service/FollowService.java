@@ -6,6 +6,7 @@ import com.example.web.filmforum.Payload.DataResponse;
 import com.example.web.filmforum.Payload.Enums.CommonErr;
 import com.example.web.filmforum.Repository.FollowRepository;
 import com.example.web.filmforum.Repository.UserRepository;
+import com.example.web.filmforum.Service.Notification.NotificationProducer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +21,8 @@ public class FollowService {
     private UserRepository userRepository;
     @Autowired
     private FollowRepository followRepository;
+    @Autowired
+    private NotificationProducer notificationProducer;
 
     private UserPO getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -58,6 +61,11 @@ public class FollowService {
         follow.setFollowing(target);
         follow.setCreateTime(LocalDateTime.now());
         followRepository.save(follow);
+
+        // 发送关注通知
+        String nickname = me.getNickname() != null ? me.getNickname() : me.getUsername();
+        notificationProducer.sendFollowNotification(me.getId(), target.getId(), nickname + " 关注了你");
+
         return DataResponse.ok();
     }
 

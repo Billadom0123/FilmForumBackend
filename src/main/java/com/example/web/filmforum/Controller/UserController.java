@@ -96,4 +96,11 @@ public class UserController {
         PageRequest pr = PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1));
         return userService.getUserFavorites(id, pr);
     }
+
+    // 新增：修改密码
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
+    @PostMapping("/{id}/password")
+    public DataResponse changePassword(@PathVariable("id") Long id, @RequestBody JSONObject body) {
+        return userService.changePassword(id, body);
+    }
 }

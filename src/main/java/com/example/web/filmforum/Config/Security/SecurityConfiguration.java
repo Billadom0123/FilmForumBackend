@@ -113,6 +113,7 @@ public class SecurityConfiguration {
             response.setStatus(200);
             out.write(JSON.toJSONString(DataResponse.success(
                     H.build()
+                            .put("id", user.getId())
                             .put("username", user.getUsername())
                             .put("nickname", user.getNickname())
                             .put("email", user.getEmail())

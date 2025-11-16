@@ -33,4 +33,7 @@ public interface FilmRepository extends JpaRepository<FilmPO, Long> {
 
     @Query("select coalesce((select rs.ratingAvg from RatingStatPO rs where rs.targetType = 'FILM' and rs.targetId = :filmId), 0)")
     Double getAvgScore(@Param("filmId") Long filmId);
+
+    // 新增：按浏览量倒序分页
+    Page<FilmPO> findAllByOrderByViewsDesc(Pageable pageable);
 }

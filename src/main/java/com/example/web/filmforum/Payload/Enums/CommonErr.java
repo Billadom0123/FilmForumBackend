@@ -84,7 +84,11 @@ public enum CommonErr {
 
     FILE_OUT_OF_LIMIT(50001,"文件大小超出限制!"),
 
-    FILE_OPERATOR_ERR(50002,"文件操作失败!");
+    FILE_OPERATOR_ERR(50002,"文件操作失败!"),
+
+    FILE_NOT_FOUND(50003,"未找到文件!"),
+
+    FILE_UPLOAD_ERR(50004,"文件上传失败!");
 
 
     private final int code;

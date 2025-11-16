@@ -13,6 +13,7 @@ import com.example.web.filmforum.Repository.LikeRepository;
 import com.example.web.filmforum.Repository.PostRepository;
 import com.example.web.filmforum.Repository.UserRepository;
 import com.example.web.filmforum.Repository.FavoriteRepository;
+import com.example.web.filmforum.Service.Notification.NotificationProducer;
 import com.example.web.filmforum.Util.H;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -38,6 +39,8 @@ public class PostService {
     private UserRepository userRepository;
     @Autowired
     private FavoriteRepository favoriteRepository;
+    @Autowired
+    private NotificationProducer notificationProducer;
 
     private UserPO currentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -202,6 +205,15 @@ public class PostService {
         l.setTargetType("POST");
         l.setTargetId(id);
         likeRepository.save(l);
+        // 仅在点赞成功时发送通知；取消点赞不发送；给自己点赞不通知
+        try {
+            if (p.getAuthor() != null && !p.getAuthor().getId().equals(me.getId())) {
+                String nick = me.getNickname() != null ? me.getNickname() : me.getUsername();
+                notificationProducer.sendLikePostNotification(me.getId(), p.getAuthor().getId(), p.getId(), nick + " 赞了你的帖子");
+            }
+        } catch (Exception ex) {
+            org.slf4j.LoggerFactory.getLogger(PostService.class).warn("发送帖子点赞通知失败: {}", ex.getMessage());
+        }
         return DataResponse.ok();
     }
 

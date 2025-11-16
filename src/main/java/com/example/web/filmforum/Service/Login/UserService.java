@@ -301,7 +301,7 @@ public class UserService {
         UserPO target = userRepository.findById(userId).orElse(null);
         if (target == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
         Page<FollowPO> page = followRepository.findByFollower_Id(userId, pageable);
-        com.alibaba.fastjson2.JSONArray arr = new com.alibaba.fastjson2.JSONArray();
+        JSONArray arr = new JSONArray();
         UserPO me = currentUser();
         for (FollowPO f : page.getContent()) {
             UserPO u = f.getFollowing();
@@ -445,5 +445,41 @@ public class UserService {
                         .put("join_date", me.getJoinDate())
                         .toJson()
         );
+    }
+
+    // 新增：修改密码（本人或管理员）
+    public DataResponse changePassword(Long userId, JSONObject body) {
+        if (userId == null || userId <= 0 || body == null) return DataResponse.failure(CommonErr.PARAM_WRONG);
+        UserPO me = currentUser();
+        if (me == null) return DataResponse.failure(CommonErr.NO_AUTHENTICATION);
+        UserPO target = userRepository.findById(userId).orElse(null);
+        if (target == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
+        boolean isAdmin = me.getRole() != null && me.getRole() == UserType.ROLE_ADMIN;
+        if (!isAdmin && !me.getId().equals(target.getId())) return DataResponse.failure(CommonErr.NO_AUTHORITY);
+
+        String newPwd = body.getString("newPassword");
+        if (newPwd == null || newPwd.isBlank()) return DataResponse.failure(CommonErr.PARAM_WRONG);
+        if (newPwd.length() < 6) return DataResponse.failure(30001, "密码长度至少6位");
+
+        // 非管理员自身修改需要提供旧密码
+        if (!isAdmin) {
+            String oldPwd = body.getString("oldPassword");
+            if (oldPwd == null || oldPwd.isBlank()) return DataResponse.failure(30002, "旧密码不能为空");
+            if (!passwordEncoder.matches(oldPwd, target.getPassword())) {
+                return DataResponse.failure(30003, "旧密码不正确");
+            }
+        }
+
+        // 管理员修改他人密码：可选验证 oldPassword；如果提供则校验
+        if (isAdmin && !me.getId().equals(target.getId()) && body.containsKey("oldPassword")) {
+            String oldPwdAdmin = body.getString("oldPassword");
+            if (oldPwdAdmin != null && !oldPwdAdmin.isBlank() && !passwordEncoder.matches(oldPwdAdmin, target.getPassword())) {
+                return DataResponse.failure(30003, "旧密码不正确");
+            }
+        }
+
+        target.setPassword(passwordEncoder.encode(newPwd));
+        userRepository.save(target);
+        return DataResponse.success(H.build().put("changed", true).put("id", target.getId()).toJson());
     }
 }

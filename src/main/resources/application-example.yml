@@ -24,6 +24,16 @@ spring:
       initialize-schema: always
     timeout: 14400
 
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+app:
+  notifications:
+    rabbit:
+      enabled: false
 
 server:
   port: 8082

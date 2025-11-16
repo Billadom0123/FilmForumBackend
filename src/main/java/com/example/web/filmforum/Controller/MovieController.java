@@ -105,4 +105,12 @@ public class MovieController {
         PageRequest pr = PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1));
         return movieService.reviews(id, pr);
     }
+
+    // 新增：最热电影分页
+    @GetMapping("/hot")
+    public DataResponse hot(@RequestParam(defaultValue = "1") int page,
+                            @RequestParam(defaultValue = "10") int size) {
+        PageRequest pr = PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1));
+        return movieService.hot(pr);
+    }
 }
