@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -32,4 +33,8 @@ public interface VarietyRepository extends JpaRepository<VarietyPO, Long> {
 
     @Query("select coalesce(avg(r.score),0) from RatingPO r where r.targetType = 'VARIETY' and r.targetId = :varietyId")
     Double getAvgScore(@Param("varietyId") Long varietyId);
+
+    @Modifying
+    @Query("update VarietyPO v set v.host = null where v.host.id = :actorId")
+    int clearHostReferences(@Param("actorId") Long actorId);
 }

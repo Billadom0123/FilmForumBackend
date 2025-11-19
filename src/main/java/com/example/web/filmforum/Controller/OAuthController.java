@@ -4,12 +4,14 @@ import com.alibaba.fastjson2.JSONObject;
 import com.example.web.filmforum.Model.User.UserPO;
 import com.example.web.filmforum.Service.Login.UserDetailsServiceImpl;
 import com.example.web.filmforum.Service.Login.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -52,6 +54,7 @@ public class OAuthController {
 
     @GetMapping("/qq/callback")
     public void qqCallback(@RequestParam("code") String code, @RequestParam("state") String state,
+                            HttpServletRequest request,
                             HttpServletResponse response) throws IOException {
 
         try {
@@ -86,7 +89,8 @@ public class OAuthController {
             UsernamePasswordAuthenticationToken authenticationToken =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-
+            // 强制创建 session 并写入安全上下文（使用常量 key）
+            request.getSession(true).setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, SecurityContextHolder.getContext());
             response.sendRedirect(successRedirect);
         } catch (Exception e) {
             response.sendRedirect(failureRedirect + "?msg=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));

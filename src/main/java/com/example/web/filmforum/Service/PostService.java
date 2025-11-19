@@ -244,4 +244,68 @@ public class PostService {
                 .toJson()
         );
     }
+
+    // 新增：最热帖子分页
+    public DataResponse hot(Pageable pageable) {
+        Page<PostPO> page = postRepository.findAllByOrderByViewsDesc(pageable);
+        JSONArray arr = new JSONArray();
+        UserPO me = currentUser();
+        for (PostPO p : page.getContent()) {
+            long likes = likeRepository.countByTargetTypeAndTargetId("POST", p.getId());
+            boolean isLiked = me != null && likeRepository.existsByUser_IdAndTargetTypeAndTargetId(me.getId(), "POST", p.getId());
+            long comments = commentRepository.countByPost_Id(p.getId());
+            String snippet = p.getContent() == null ? null : (p.getContent().length() > 120 ? p.getContent().substring(0, 120) : p.getContent());
+            arr.add(H.build()
+                    .put("id", p.getId())
+                    .put("title", p.getTitle())
+                    .put("content", snippet)
+                    .put("author", p.getAuthor() == null ? null : H.build()
+                            .put("id", p.getAuthor().getId())
+                            .put("username", p.getAuthor().getUsername())
+                            .put("nickname", p.getAuthor().getNickname())
+                            .put("avatar", p.getAuthor().getAvatar())
+                            .toJson())
+                    .put("category", p.getCategory())
+                    .put("createTime", p.getCreateTime())
+                    .put("views", p.getViews())
+                    .put("likes", likes)
+                    .put("commentsCount", comments)
+                    .put("isLiked", isLiked)
+                    .toJson());
+        }
+        Pagination pag = new Pagination(page.getTotalElements(), pageable.getPageNumber() + 1, pageable.getPageSize(), page.hasNext());
+        return DataResponse.success(H.build().put("posts", arr).put("pagination", pag.toJSON()).toJson());
+    }
+
+    // 新增：随机帖子分页
+    public DataResponse random(Pageable pageable) {
+        Page<PostPO> page = postRepository.findRandom(pageable);
+        JSONArray arr = new JSONArray();
+        UserPO me = currentUser();
+        for (PostPO p : page.getContent()) {
+            long likes = likeRepository.countByTargetTypeAndTargetId("POST", p.getId());
+            boolean isLiked = me != null && likeRepository.existsByUser_IdAndTargetTypeAndTargetId(me.getId(), "POST", p.getId());
+            long comments = commentRepository.countByPost_Id(p.getId());
+            String snippet = p.getContent() == null ? null : (p.getContent().length() > 120 ? p.getContent().substring(0, 120) : p.getContent());
+            arr.add(H.build()
+                    .put("id", p.getId())
+                    .put("title", p.getTitle())
+                    .put("content", snippet)
+                    .put("author", p.getAuthor() == null ? null : H.build()
+                            .put("id", p.getAuthor().getId())
+                            .put("username", p.getAuthor().getUsername())
+                            .put("nickname", p.getAuthor().getNickname())
+                            .put("avatar", p.getAuthor().getAvatar())
+                            .toJson())
+                    .put("category", p.getCategory())
+                    .put("createTime", p.getCreateTime())
+                    .put("views", p.getViews())
+                    .put("likes", likes)
+                    .put("commentsCount", comments)
+                    .put("isLiked", isLiked)
+                    .toJson());
+        }
+        Pagination pag = new Pagination(page.getTotalElements(), pageable.getPageNumber() + 1, pageable.getPageSize(), page.hasNext());
+        return DataResponse.success(H.build().put("posts", arr).put("pagination", pag.toJSON()).toJson());
+    }
 }

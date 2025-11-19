@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import com.example.web.filmforum.Model.Common.RatingStatPO;
+// 新增导入
+import com.example.web.filmforum.Model.Award.AwardPO;
 
 @Service
 public class VarietyService {
@@ -52,6 +54,9 @@ public class VarietyService {
     private UserRepository userRepository;
     @Autowired
     private ActorRepository actorRepository;
+    // 新增：校验奖项需要
+    @Autowired
+    private AwardRepository awardRepository;
 
     private UserPO currentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -395,6 +400,34 @@ public class VarietyService {
                     season.setEpisodes(s.getInteger("episodes") == null ? 0 : s.getInteger("episodes"));
                     season.setYear(s.getInteger("year") == null ? 0 : s.getInteger("year"));
                     varietySeasonRepository.save(season);
+                }
+            }
+        }
+
+        // 新增：awards 处理（仅当请求包含 awards 时按覆盖策略更新）
+        if (body.containsKey("awards")) {
+            awardRecordRepository.deleteByTargetIdAndAward_TargetType(saved.getId(), "VARIETY");
+            JSONArray arr = body.getJSONArray("awards");
+            if (arr != null && !arr.isEmpty()) {
+                for (int i = 0; i < arr.size(); i++) {
+                    JSONObject a = arr.getJSONObject(i);
+                    if (a == null) continue;
+                    Long awId = a.getLong("id");
+                    Integer awYear = a.getInteger("year");
+                    String status = a.getString("status");
+                    String note = a.getString("note");
+                    if (awId == null) continue;
+                    var opt = awardRepository.findById(awId);
+                    if (opt.isEmpty()) continue; // 奖项不存在
+                    AwardPO aw = opt.get();
+                    if (!"VARIETY".equals(aw.getTargetType())) continue; // 类型不匹配
+                    AwardRecordPO rec = new AwardRecordPO();
+                    rec.setAward(aw);
+                    rec.setYear(awYear == null ? 0 : awYear);
+                    rec.setTargetId(saved.getId());
+                    rec.setStatus(status);
+                    rec.setNote(note);
+                    awardRecordRepository.save(rec);
                 }
             }
         }

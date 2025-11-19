@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -31,4 +32,8 @@ public interface TvShowRepository extends JpaRepository<TvShowPO, Long> {
 
     @Query("select coalesce((select rs.ratingAvg from RatingStatPO rs where rs.targetType = 'TVSHOW' and rs.targetId = :showId), 0)")
     Double getAvgScore(@Param("showId") Long showId);
+
+    @Modifying
+    @Query("update TvShowPO t set t.director = null where t.director.id = :actorId")
+    int clearDirectorReferences(@Param("actorId") Long actorId);
 }

@@ -6,10 +6,7 @@ import com.example.web.filmforum.Model.Actor.Actor;
 import com.example.web.filmforum.Payload.DataResponse;
 import com.example.web.filmforum.Payload.Enums.CommonErr;
 import com.example.web.filmforum.Payload.Pagination;
-import com.example.web.filmforum.Repository.ActorRepository;
-import com.example.web.filmforum.Repository.AwardRecordRepository;
-import com.example.web.filmforum.Repository.FilmActorRepository;
-import com.example.web.filmforum.Repository.TvShowActorRepository;
+import com.example.web.filmforum.Repository.*;
 import com.example.web.filmforum.Util.H;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -22,6 +19,8 @@ import com.example.web.filmforum.Model.Award.AwardRecordPO;
 import java.util.List;
 
 import java.time.LocalDate;
+// 新增导入
+import com.example.web.filmforum.Model.Award.AwardPO;
 
 @Service
 public class ActorService {
@@ -30,13 +29,29 @@ public class ActorService {
     private ActorRepository actorRepository;
 
     @Autowired
+    private FilmRepository filmRepository;
+
+    @Autowired
     private FilmActorRepository filmActorRepository;
+
+    @Autowired
+    private TvShowRepository tvShowRepository;
 
     @Autowired
     private TvShowActorRepository tvShowActorRepository;
 
     @Autowired
+    private VarietyRepository varietyRepository;
+
+    @Autowired
+    private VarietyGuestRepository varietyGuestRepository;
+
+    @Autowired
     private AwardRecordRepository awardRecordRepository;
+
+    // 新增：校验奖项需要
+    @Autowired
+    private AwardRepository awardRepository;
 
     public DataResponse searchActors(String keyword, String nationality, String gender, Pageable pageable) {
         Page<Actor> actors = actorRepository.queryActors(keyword, keyword, nationality, gender, pageable);
@@ -121,20 +136,26 @@ public class ActorService {
     }
 
     // 新增/更新演员信息（POST）
+    @Transactional
     public DataResponse save(JSONObject payload) {
         try {
-            Actor actor = new Actor();
+            Actor actor;
             String idStr = payload.getString("id");
-            if (idStr != null && !idStr.isEmpty()) {
+            if (idStr != null && !idStr.isBlank()) {
                 try {
-                    actor.setId(Long.parseLong(idStr));
-                } catch (NumberFormatException ignore) { /* ignore invalid id, treat as create */ }
+                    Long id = Long.parseLong(idStr);
+                    actor = actorRepository.findById(id).orElse(new Actor());
+                } catch (NumberFormatException e) {
+                    actor = new Actor();
+                }
+            } else {
+                actor = new Actor();
             }
             actor.setName(payload.getString("name"));
             actor.setAvatar(payload.getString("avatar"));
             String birthdayStr = payload.getString("birthday");
             if (birthdayStr != null && !birthdayStr.isEmpty()) {
-                try { actor.setBirthday(LocalDate.parse(birthdayStr)); } catch (Exception ignore) { /* ignore bad date */ }
+                try { actor.setBirthday(LocalDate.parse(birthdayStr)); } catch (Exception ignore) {}
             }
             actor.setNationality(payload.getString("nationality"));
             actor.setGender(payload.getString("gender"));
@@ -144,8 +165,37 @@ public class ActorService {
                 return DataResponse.failure(30000, "name不能为空");
             }
 
-            actorRepository.save(actor);
-            return DataResponse.ok();
+            Actor saved = actorRepository.save(actor);
+
+            // 新增：awards 处理（仅当请求包含 awards 时按覆盖策略更新）
+            if (payload.containsKey("awards")) {
+                awardRecordRepository.deleteByTargetIdAndAward_TargetType(saved.getId(), "ACTOR");
+                JSONArray arr = payload.getJSONArray("awards");
+                if (arr != null && !arr.isEmpty()) {
+                    for (int i = 0; i < arr.size(); i++) {
+                        JSONObject a = arr.getJSONObject(i);
+                        if (a == null) continue;
+                        Long awId = a.getLong("id");
+                        Integer awYear = a.getInteger("year");
+                        String status = a.getString("status");
+                        String note = a.getString("note");
+                        if (awId == null) continue;
+                        var opt = awardRepository.findById(awId);
+                        if (opt.isEmpty()) continue;
+                        AwardPO aw = opt.get();
+                        if (!"ACTOR".equals(aw.getTargetType())) continue;
+                        AwardRecordPO rec = new AwardRecordPO();
+                        rec.setAward(aw);
+                        rec.setYear(awYear == null ? 0 : awYear);
+                        rec.setTargetId(saved.getId());
+                        rec.setStatus(status);
+                        rec.setNote(note);
+                        awardRecordRepository.save(rec);
+                    }
+                }
+            }
+
+            return DataResponse.success(H.build().put("id", saved.getId()).toJson());
         } catch (Exception e) {
             return DataResponse.failure(500, "保存演员失败: " + e.getMessage());
         }
@@ -156,13 +206,15 @@ public class ActorService {
         Actor actor = actorRepository.findById(id).orElse(null);
         if (actor == null) return DataResponse.failure(CommonErr.RESOURCE_NOT_FOUND);
         try {
-            List<FilmActor> filmRelations = filmActorRepository.findByActor_Id(actor.getId());
-            if (!filmRelations.isEmpty()) filmActorRepository.deleteAll(filmRelations);
-            var tvShowRelations = tvShowActorRepository.findByActor_Id(actor.getId());
-            if (!tvShowRelations.isEmpty()) tvShowActorRepository.deleteAll(tvShowRelations);
-            var awardRecords = awardRecordRepository.findByTargetIdAndAward_TargetType(actor.getId(), "ACTOR");
-            if (!awardRecords.isEmpty()) awardRecordRepository.deleteAll(awardRecords);
-            actorRepository.delete(actor);
+            // 先置空其作为导演/主持的外键，避免外键约束阻止删除
+            this.filmRepository.clearDirectorReferences(id);
+            this.tvShowRepository.clearDirectorReferences(id);
+            this.varietyRepository.clearHostReferences(id);
+            this.filmActorRepository.deleteByActorId(id);
+            this.tvShowActorRepository.deleteByActorId(id);
+            this.varietyGuestRepository.deleteByActorId(id);
+            this.awardRecordRepository.deleteByTargetIdAndAward_TargetType(id, "ACTOR");
+            this.actorRepository.delete(actor);
             return DataResponse.ok();
         } catch (Exception e) {
             return DataResponse.failure(500, "删除演员失败: " + e.getMessage());

@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import com.example.web.filmforum.Model.Common.RatingStatPO;
+// 添加导入
+import com.example.web.filmforum.Model.Award.AwardPO;
 
 @Service
 public class MovieService {
@@ -49,6 +51,9 @@ public class MovieService {
     private UserRepository userRepository;
     @Autowired
     private ActorRepository actorRepository;
+    // 新增：校验奖项需要
+    @Autowired
+    private AwardRepository awardRepository;
 
     public DataResponse list(String tag, Integer year, Double rating, String actor, String award, Pageable pageable) {
         Page<FilmPO> page = filmRepository.queryMovies(null, tag, year, actor, award, rating, pageable);
@@ -354,6 +359,35 @@ public class MovieService {
                     fa.setRole(a.getString("role"));
                     filmActorRepository.save(fa);
                 });
+            }
+        }
+
+        // 新增：awards 处理（仅当请求包含 awards 时按覆盖策略更新）
+        if (body.containsKey("awards")) {
+            // 清空旧记录
+            awardRecordRepository.deleteByTargetIdAndAward_TargetType(saved.getId(), "FILM");
+            JSONArray arr = body.getJSONArray("awards");
+            if (arr != null && !arr.isEmpty()) {
+                for (int i = 0; i < arr.size(); i++) {
+                    JSONObject a = arr.getJSONObject(i);
+                    if (a == null) continue;
+                    Long awId = a.getLong("id");
+                    Integer awYear = a.getInteger("year");
+                    String status = a.getString("status");
+                    String note = a.getString("note");
+                    if (awId == null) continue;
+                    var opt = awardRepository.findById(awId);
+                    if (opt.isEmpty()) continue; // 奖项不存在
+                    AwardPO aw = opt.get();
+                    if (!"FILM".equals(aw.getTargetType())) continue; // 类型不匹配
+                    AwardRecordPO rec = new AwardRecordPO();
+                    rec.setAward(aw);
+                    rec.setYear(awYear == null ? 0 : awYear);
+                    rec.setTargetId(saved.getId());
+                    rec.setStatus(status);
+                    rec.setNote(note);
+                    awardRecordRepository.save(rec);
+                }
             }
         }
         return DataResponse.success(H.build().put("id", saved.getId()).put("updated", isUpdate).toJson());

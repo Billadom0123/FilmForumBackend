@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -36,4 +37,9 @@ public interface FilmRepository extends JpaRepository<FilmPO, Long> {
 
     // 新增：按浏览量倒序分页
     Page<FilmPO> findAllByOrderByViewsDesc(Pageable pageable);
+
+    // 新增：删除演员前置空其作为导演的引用
+    @Modifying
+    @Query("update FilmPO f set f.director = null where f.director.id = :actorId")
+    int clearDirectorReferences(@Param("actorId") Long actorId);
 }

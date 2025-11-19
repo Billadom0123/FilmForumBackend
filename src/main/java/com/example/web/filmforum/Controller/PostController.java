@@ -28,6 +28,20 @@ public class PostController {
         return postService.list(category, keyword, pageRequest);
     }
 
+    @GetMapping("/hot")
+    public DataResponse hot(@RequestParam(defaultValue = "1") int page,
+                            @RequestParam(defaultValue = "10") int size) {
+        PageRequest pageRequest = PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1));
+        return postService.hot(pageRequest);
+    }
+
+    @GetMapping("/random")
+    public DataResponse random(@RequestParam(defaultValue = "1") int page,
+                               @RequestParam(defaultValue = "10") int size) {
+        PageRequest pageRequest = PageRequest.of(Math.max(page - 1, 0), Math.max(size, 1));
+        return postService.random(pageRequest);
+    }
+
     @GetMapping("/{id}")
     public DataResponse detail(@PathVariable Long id) {
         return postService.detail(id);
