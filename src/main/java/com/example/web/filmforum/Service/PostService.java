@@ -15,6 +15,8 @@ import com.example.web.filmforum.Repository.UserRepository;
 import com.example.web.filmforum.Repository.FavoriteRepository;
 import com.example.web.filmforum.Service.Notification.NotificationProducer;
 import com.example.web.filmforum.Util.H;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,8 +39,6 @@ public class PostService {
     private LikeRepository likeRepository;
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private FavoriteRepository favoriteRepository;
     @Autowired
     private NotificationProducer notificationProducer;
 
@@ -68,7 +68,8 @@ public class PostService {
             long likes = likeRepository.countByTargetTypeAndTargetId("POST", p.getId());
             boolean isLiked = me != null && likeRepository.existsByUser_IdAndTargetTypeAndTargetId(me.getId(), "POST", p.getId());
             long comments = commentRepository.countByPost_Id(p.getId());
-            String snippet = p.getContent() == null ? null : (p.getContent().length() > 120 ? p.getContent().substring(0, 120) : p.getContent());
+            String content = parseContent(p.getContent());
+            String snippet = content.length() > 120 ? content.substring(0, 120) : content;
             arr.add(
                     H.build()
                             .put("id", p.getId())
@@ -254,7 +255,8 @@ public class PostService {
             long likes = likeRepository.countByTargetTypeAndTargetId("POST", p.getId());
             boolean isLiked = me != null && likeRepository.existsByUser_IdAndTargetTypeAndTargetId(me.getId(), "POST", p.getId());
             long comments = commentRepository.countByPost_Id(p.getId());
-            String snippet = p.getContent() == null ? null : (p.getContent().length() > 120 ? p.getContent().substring(0, 120) : p.getContent());
+            String content = parseContent(p.getContent());
+            String snippet = content.length() > 120 ? content.substring(0, 120) : content;
             arr.add(H.build()
                     .put("id", p.getId())
                     .put("title", p.getTitle())
@@ -286,7 +288,8 @@ public class PostService {
             long likes = likeRepository.countByTargetTypeAndTargetId("POST", p.getId());
             boolean isLiked = me != null && likeRepository.existsByUser_IdAndTargetTypeAndTargetId(me.getId(), "POST", p.getId());
             long comments = commentRepository.countByPost_Id(p.getId());
-            String snippet = p.getContent() == null ? null : (p.getContent().length() > 120 ? p.getContent().substring(0, 120) : p.getContent());
+            String content = parseContent(p.getContent());
+            String snippet = content.length() > 120 ? content.substring(0, 120) : content;
             arr.add(H.build()
                     .put("id", p.getId())
                     .put("title", p.getTitle())
@@ -307,5 +310,18 @@ public class PostService {
         }
         Pagination pag = new Pagination(page.getTotalElements(), pageable.getPageNumber() + 1, pageable.getPageSize(), page.hasNext());
         return DataResponse.success(H.build().put("posts", arr).put("pagination", pag.toJSON()).toJson());
+    }
+
+    private String parseContent(String content) {
+        if (content == null || content.isBlank()) {
+            return "";
+        }
+        try {
+            Document doc = Jsoup.parse(content);
+            return doc.body().text();
+        } catch (Exception e) {
+            return content;
+        }
+
     }
 }
